@@ -58,10 +58,14 @@ details input{width:58px}
 .ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;width:48px;height:48px;line-height:42px;font-size:21px;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.4)}
 .hint{color:var(--muted);font-size:14px;margin:8px 0 0}
 .tl{color:var(--muted);align-self:center}
-.rg{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
-.rc{border:1px solid var(--line);border-radius:10px;padding:8px;cursor:pointer;background:var(--bg)}
+.rg{display:grid;gap:6px;grid-template-columns:repeat(2,1fr)}
+@media(min-width:560px){.rg{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:860px){.rg{grid-template-columns:repeat(6,1fr)}}
+.rc{border:1px solid var(--line);border-radius:8px;padding:4px;cursor:pointer;background:var(--bg)}
+.rc strong{display:block;font-size:12px;line-height:1.2}
+.rc small{font-size:11px;line-height:1.25}
 .rc.now{box-shadow:0 0 0 2px var(--sel)}
-.rc svg{border-radius:6px;margin-bottom:6px}
+.rc svg{border-radius:6px;margin-bottom:3px}
 .rc small{display:block}.bad{color:var(--warn)}.good{color:var(--ok)}
 .pl:not(.open)>.row+.row,.pl:not(.open) [data-del]{display:none}
 .pl:not(.open){padding:6px 10px;margin-bottom:6px;cursor:pointer}
@@ -87,7 +91,8 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 <div class="wrap">
 <header>
 <h1>Schemi pallavolo mista</h1>
-<p>Crea più schemi, scegli i giocatori e controlla le regole. Tutto resta salvato su questo dispositivo.</p>
+<p>Crea più schemi, scegli i giocatori e controlla le regole. Con il salvataggio online i dati sono gli stessi su PC e telefono.</p>
+<div class="bar" id="syncbar"><button id="syncBtn" type="button">⟳ Sincronizza</button><button id="syncKey" type="button">Collega salvataggio</button><span class="st" id="syncMsg" role="status" style="white-space:normal"></span></div>
 </header>
 <div class="grid">
 <section class="card">
@@ -118,9 +123,9 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 <div class="head"><h2>Giocatori</h2><span class="st" id="pcount"></span><button id="add">Aggiungi giocatore</button></div>
 <div id="roster"></div>
 <details id="bk">
-<summary>Backup e trasferimento dati</summary>
-<p class="hint">Per portare giocatori e schemi su un altro telefono o computer: premi “Prepara backup”, copia il testo e mandalo (per esempio su WhatsApp). Sull’altro dispositivo incollalo qui sotto e premi “Carica backup”.</p>
-<div class="bar"><button id="bkMake">Prepara backup</button><button id="bkCopy">Copia</button><button id="bkLoad">Carica backup</button></div>
+<summary>Backup manuale (alternativa)</summary>
+<p class="hint">Serve solo se la sincronizzazione non è attiva: premi “Prepara backup”, copia il testo e incollalo sull’altro dispositivo, poi premi “Carica backup”. Oppure usa “Copia link con i dati”.</p>
+<div class="bar"><button id="bkMake">Prepara backup</button><button id="bkCopy">Copia</button><button id="bkLoad">Carica backup</button><button id="bkLink">Copia link con i dati</button></div>
 <textarea id="bkText" rows="5" aria-label="Testo del backup" placeholder="Il backup compare qui. Per caricarlo, incolla qui il testo."></textarea>
 <p class="hint" id="bkMsg"></p>
 </details>
@@ -150,7 +155,13 @@ const sc={id:uid(),name:"Ricezione",pos};
 return{players:p,schemes:[sc],cur:sc.id,rules:{minF:2,minM:2,maxMF:2,v:2}};
 }
 function load(){try{const v=localStorage.getItem("volley-v1");if(v){const o=JSON.parse(v);if(o&&o.players&&o.schemes&&o.schemes.length){if(!o.rules||o.rules.v!==2)o.rules={minF:2,minM:2,maxMF:2,v:2};return o}}}catch(e){}return seed()}
-function save(){try{localStorage.setItem("volley-v1",JSON.stringify(S))}catch(e){}}
+const snap=()=>JSON.stringify(S,(k,v)=>k==="updated"?undefined:v);
+let lastJ=null,tm=null;
+function save(){
+if(lastJ===null)lastJ=snap();
+else{const j=snap();if(j!==lastJ){lastJ=j;S.updated=Date.now();clearTimeout(tm);tm=setTimeout(()=>{tm=null;if(tok())sync()},4000)}}
+try{localStorage.setItem("volley-v1",JSON.stringify(S))}catch(e){}
+}
 let S=load(),sel=null;
 const cur=()=>S.schemes.find(s=>s.id===S.cur)||S.schemes[0];
 const pl=id=>S.players.find(p=>p.id===id);
@@ -369,7 +380,73 @@ if(!confirm("Sostituire i dati di questo dispositivo con il backup?"))return;
 S=o;if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};
 sel=null;open=null;tool=null;render();bm.textContent="Backup caricato.";
 });
+$("#bkLink").addEventListener("click",async()=>{
+const u=location.href.split("#")[0]+"#d="+btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+bt.value=u;
+try{await navigator.clipboard.writeText(u);bm.textContent="Link copiato: incollalo in un messaggio e aprilo sull’altro dispositivo."}
+catch(e){bt.focus();bt.select();bm.textContent="Copia a mano il link che vedi qui sopra."}
+});
+const REPO=(()=>{const m=location.hostname.match(/^([^.]+)\.github\.io$/),r=location.pathname.split("/")[1];return m&&r?{o:m[1],r:r}:null})();
+const API=REPO?"https://api.github.com/repos/"+REPO.o+"/"+REPO.r+"/contents/volley-data.json":null;
+const tok=()=>{try{return localStorage.getItem("volley-token")||""}catch(e){return""}};
+const sm=t=>{$("#syncMsg").textContent=t};
+let sha=null,busy=false,again=false;
+const hd=w=>{const h={Accept:"application/vnd.github+json"};if(tok())h.Authorization="Bearer "+tok();if(w)h["Content-Type"]="application/json";return h};
+async function pull(){
+const r=await fetch(API+"?t="+Date.now(),{headers:hd(),cache:"no-store"});
+if(r.status===404){sha=null;return null}
+if(!r.ok)throw r.status;
+const j=await r.json();sha=j.sha;
+const o=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\s/g,"")))));
+if(!o||!Array.isArray(o.players)||!Array.isArray(o.schemes)||!o.schemes.length)throw 0;
+return o;
+}
+async function push(){
+if(!S.updated){S.updated=Date.now();save()}
+const b={message:"Aggiornamento dati",content:btoa(unescape(encodeURIComponent(JSON.stringify(S))))};
+if(sha)b.sha=sha;
+const r=await fetch(API,{method:"PUT",headers:hd(1),body:JSON.stringify(b)});
+if(!r.ok)throw r.status;
+const j=await r.json();sha=j.content.sha;
+}
+function adopt(o){S=o;if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};if(!S.schemes.some(x=>x.id===S.cur))S.cur=S.schemes[0].id;lastJ=snap();sel=null;open=null;tool=null;render()}
+async function sync(){
+if(!API)return;
+if(busy){again=true;return}
+busy=true;sm("Sincronizzazione…");
+try{
+const rem=await pull(),lu=S.updated||0,ru=rem?(rem.updated||0):0;
+if(rem&&ru>lu){adopt(rem);sm("Dati aggiornati dal salvataggio online ✓")}
+else if(!rem||lu>ru){
+if(!tok())sm("Le modifiche sono solo su questo dispositivo: premi “Collega salvataggio” per condividerle.");
+else{await push();sm("Salvato online ✓ "+new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}))}
+}else sm("Già aggiornato ✓");
+}catch(e){
+sm(e===401?"Token non valido o scaduto: premi “Collega salvataggio”.":(e===409||e===422)?"Un altro dispositivo ha salvato nel frattempo: premi di nuovo Sincronizza.":(e===403||e===404)?"Salvataggio non riuscito: controlla il token e i suoi permessi (Contents: lettura e scrittura).":"Nessuna connessione o servizio non raggiungibile.");
+}
+busy=false;
+if(again){again=false;sync()}
+}
+$("#syncBtn").addEventListener("click",sync);
+$("#syncKey").addEventListener("click",()=>{
+const t=prompt("Incolla il token GitHub (lascia vuoto per scollegare):",tok());
+if(t===null)return;
+try{localStorage.setItem("volley-token",t.trim())}catch(e){}
+sync();
+});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync()});
+if(!API)$("#syncbar").style.display="none";
+(function(){
+if(location.hash.indexOf("#d=")!==0)return;
+try{
+const o=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(3)))));
+if(!o||!Array.isArray(o.players)||!Array.isArray(o.schemes)||!o.schemes.length)throw 0;
+if(confirm("Sostituire i dati di questo dispositivo con quelli del link?")){S=o;S.updated=Date.now();if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};save()}
+}catch(e){}
+history.replaceState(null,"",location.href.split("#")[0]);
+})();
 render();
+sync();
 </script>
 </body>
 </html>
