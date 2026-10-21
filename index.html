@@ -81,7 +81,7 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 .nm{display:flex;gap:8px;align-items:baseline;min-width:0;overflow:hidden;padding:0 2px}
 .nm b{flex:none;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;color:var(--muted);font-size:13px}
-.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -14px 10px;padding:0 14px 2px;scroll-snap-type:x proximity}
+.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 0 10px;padding:0 0 2px;scroll-snap-type:x proximity}
 .tabs::-webkit-scrollbar{display:none}
 .tabs button{flex:none;white-space:nowrap;scroll-snap-align:start}
 .tabs #new{border-style:dashed;color:var(--muted)}
@@ -98,10 +98,11 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 .seg button{border:0;border-radius:0;padding:9px 8px;background:var(--bg);font-weight:600}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button:active{background:var(--sel);color:#fff}
-.tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-14px;margin-right:-14px;padding:0 14px 2px}
+.tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:0 0 2px}
 .tools::-webkit-scrollbar{display:none}
 .tools button{flex:none;white-space:nowrap;border-radius:999px;padding:6px 12px}
-@media(min-width:860px){.tabs,.tools{margin-left:0;margin-right:0;padding-left:0;padding-right:0;flex-wrap:wrap}.seg{max-width:340px}}
+@media(min-width:860px){.tabs,.tools{flex-wrap:wrap}.top select{max-width:200px}.seg button{padding:10px 12px}}
+@media(min-width:1100px){.wrap{max-width:1480px}.grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}}
 .grip.fp{box-shadow:0 0 0 2px #2f9e44}
 .tg{padding:2px 9px;transition:transform .15s}.pl.open .tg{transform:rotate(180deg)}
 .tool.on{background:var(--sel);color:#fff;border-color:var(--sel)}
