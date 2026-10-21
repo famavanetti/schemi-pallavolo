@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Schemi pallavolo mista</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{--bg:#eef1f4;--surface:#fff;--ink:#15202b;--muted:#5b6b7a;--line:#d5dce3;--f:#d6336c;--m:#1c7ed6;--wood:#d9541f;--court-ink:#fff;--sel:#f08c00;--ok:#2b8a3e;--warn:#c92a2a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10151b;--surface:#19212a;--ink:#e8edf2;--muted:#9aa8b6;--line:#2b3641;--wood:#c24a14;--court-ink:#fff;--ok:#69db7c;--warn:#ff8787;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10151b;--surface:#19212a;--ink:#e8edf2;--muted:#9aa8b6;--line:#2b3641;--wood:#c24a14;--court-ink:#fff;--ok:#69db7c;--warn:#ff8787;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 "Barlow",system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;font-weight:700;margin:0;letter-spacing:.2px}
+h1{font-size:30px}h2{font-size:21px}
+.wrap{max-width:1040px;margin:0 auto;padding:16px}
+header p{margin:2px 0 14px;color:var(--muted)}
+.grid{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:860px){.grid{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:start}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+input,select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0}
+.bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.bar input{flex:1 1 140px}
+svg{width:100%;height:auto;display:block;border-radius:8px}
+.zone{cursor:pointer}.zone.has{cursor:grab;touch-action:none}#court{user-select:none;-webkit-user-select:none}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;color:var(--muted);font-size:14px}
+.legend i,.dot{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+.f{background:var(--f)}.m{background:var(--m)}
+.checks{margin:10px 0 0;padding:0;list-style:none}
+.checks li{padding:9px 12px 9px 40px;position:relative;margin-bottom:6px;border-radius:8px;font-weight:600;background:rgba(201,42,42,.13);border:2px solid var(--warn);color:var(--warn)}
+.checks li:before{content:"!";position:absolute;left:11px;top:50%;transform:translateY(-50%);width:20px;height:20px;border-radius:50%;background:var(--warn);color:#fff;text-align:center;line-height:20px;font-size:14px;font-weight:700}
+.checks li.ok{color:var(--ok);background:rgba(43,138,62,.13);border-color:var(--ok)}.checks li.ok:before{content:"✓";background:var(--ok)}
+#court{border:3px solid transparent;border-radius:11px}#court.bad{border-color:var(--warn)}
+.rc.warn{border:2px solid var(--warn)}.rc small.bad{font-weight:700}
+details{margin-top:10px;color:var(--muted)}
+details label{display:inline-flex;gap:6px;align-items:center;margin:6px 12px 0 0}
+details input{width:58px}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.pl{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
+.pl.sel{border-color:var(--sel);box-shadow:0 0 0 2px var(--sel)}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.row+.row{margin-top:8px}
+.name{flex:1 1 120px;font-weight:600}
+.rt{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:2px}
+.rt input{width:52px;padding:4px 6px}
+.pick{text-align:left;flex:1 1 auto;color:var(--muted);font-size:14px}
+.avg{font-weight:600;color:var(--ink)}
+.x{color:var(--warn)}
+.grip{width:32px;height:32px;line-height:32px;text-align:center;color:#fff;font:700 16px "Barlow Condensed",system-ui,sans-serif;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;margin:0;flex:none}
+.ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;width:48px;height:48px;line-height:42px;font-size:21px;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.hint{color:var(--muted);font-size:14px;margin:8px 0 0}
+.tl{color:var(--muted);align-self:center}
+.rg{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.rc{border:1px solid var(--line);border-radius:10px;padding:8px;cursor:pointer;background:var(--bg)}
+.rc.now{box-shadow:0 0 0 2px var(--sel)}
+.rc svg{border-radius:6px;margin-bottom:6px}
+.rc small{display:block}.bad{color:var(--warn)}.good{color:var(--ok)}
+.pl:not(.open)>.row+.row,.pl:not(.open) [data-del]{display:none}
+.pl:not(.open){padding:6px 10px;margin-bottom:6px;cursor:pointer}
+.pl>.row:first-child{cursor:pointer}
+.pl>.row:first-child .name{pointer-events:none;background:transparent;border-color:transparent;padding-left:2px}
+.st{color:var(--muted);font-size:13px;white-space:nowrap}
+input[type=checkbox]{width:22px;height:22px;padding:0;accent-color:var(--ok);flex:none}
+.pr{display:flex;align-items:center;padding:0 2px;cursor:pointer}
+.ck{display:flex;gap:8px;align-items:center;font-size:14px}
+.pl.off{opacity:.55}
+textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;color:var(--ink);resize:vertical}
+#bk{margin-top:14px}
+.nm{display:flex;gap:8px;align-items:baseline;min-width:0;overflow:hidden;padding:0 2px}
+.nm b{flex:none;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;color:var(--muted);font-size:13px}
+.grip.fp{box-shadow:0 0 0 2px #2f9e44}
+.tg{padding:2px 9px;transition:transform .15s}.pl.open .tg{transform:rotate(180deg)}
+.tool.on{background:var(--sel);color:#fff;border-color:var(--sel)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Schemi pallavolo mista</h1>
+<p>Crea più schemi, scegli i giocatori e controlla le regole. Tutto resta salvato su questo dispositivo.</p>
+</header>
+<div class="grid">
+<section class="card">
+<div class="tabs" id="tabs"></div>
+<div class="bar">
+<input id="sname" aria-label="Nome dello schema">
+<select id="skind" aria-label="Tipo di schema"></select>
+<button id="rotb" title="Ruota in senso antiorario">Ruota indietro</button>
+<button id="rot" title="Ruota in senso orario">Ruota avanti</button>
+<button id="dup">Duplica</button>
+<button id="del" class="x">Elimina</button>
+</div>
+<div class="bar" id="tools"></div>
+<div id="court"></div>
+<div class="legend"><span><i class="dot f"></i>Donna</span><span><i class="dot m"></i>Uomo</span><span><i class="dot" style="background:transparent;border:2px solid #2f9e44"></i>Contorno verde = tesserato FIPAV</span><span>P palleggiatore · S schiacciatore · O opposto · C centrale · L libero</span></div>
+<p class="hint" id="hint"></p>
+<ul class="checks" id="checks"></ul>
+<details>
+<summary>Regole del campionato</summary>
+<label>Donne minime in campo <input type="number" id="rF" min="0" max="6"></label>
+<label>Uomini minimi in campo <input type="number" id="rM" min="0" max="6"></label>
+<label>Uomini massimi in prima linea <input type="number" id="rX" min="0" max="3"></label>
+<p class="hint">Preimpostato sul regolamento Libertas Rimini 2026-27 (mista): da 2 a 4 donne e da 2 a 4 uomini in campo, almeno 1 donna in prima linea (quindi al massimo 2 uomini davanti), libero solo in seconda linea. Per un altro campionato cambia i valori.</p>
+<button id="rLib" type="button">Ripristina regole Libertas Rimini</button>
+</details>
+</section>
+<section class="card">
+<div class="head"><h2>Giocatori</h2><span class="st" id="pcount"></span><button id="add">Aggiungi giocatore</button></div>
+<div id="roster"></div>
+<details id="bk">
+<summary>Backup e trasferimento dati</summary>
+<p class="hint">Per portare giocatori e schemi su un altro telefono o computer: premi “Prepara backup”, copia il testo e mandalo (per esempio su WhatsApp). Sull’altro dispositivo incollalo qui sotto e premi “Carica backup”.</p>
+<div class="bar"><button id="bkMake">Prepara backup</button><button id="bkCopy">Copia</button><button id="bkLoad">Carica backup</button></div>
+<textarea id="bkText" rows="5" aria-label="Testo del backup" placeholder="Il backup compare qui. Per caricarlo, incolla qui il testo."></textarea>
+<p class="hint" id="bkMsg"></p>
+</details>
+</section>
+</div>
+<section class="card" style="margin-top:16px">
+<h2>Le 6 rotazioni</h2>
+<p class="hint" style="margin:2px 0 12px">Ogni riquadro mostra la formazione dopo un certo numero di rotazioni e se rispetta le regole. Tocca un riquadro per portarlo in campo.</p>
+<div id="rots" class="rg"></div>
+</section>
+</div>
+<script>
+const ROLES={P:"Palleggiatore",S:"Schiacciatore",O:"Opposto",C:"Centrale",L:"Libero"};
+const MARKS={sw:{s:"⇄",n:"Switch"},bt:{s:"★",n:"Battuta"},at:{s:"!",n:"Attenzione"},mu:{s:"▲",n:"Muro"}};let tool=null;let open=null;
+const KINDS={ric:"Ricezione",bat:"Battuta",dif:"Difesa"};
+const ROT=o=>({1:o[2],6:o[1],5:o[6],4:o[5],3:o[4],2:o[3]});
+const ROTB=o=>({2:o[1],1:o[6],6:o[5],5:o[4],4:o[3],3:o[2]});
+const FRONT=[4,3,2],COLX={4:0,3:1,2:2,5:0,6:1,1:2};
+const $=s=>document.querySelector(s);
+const uid=()=>Math.random().toString(36).slice(2,8);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function seed(){
+const mk=(n,s,r,v)=>({id:uid(),name:n,sex:s,role:r,r:v});
+const p=[mk("Giulia","F","S",[4,3,3,3]),mk("Luca","M","C",[4,3,2,3]),mk("Marco","M","O",[5,3,3,4]),mk("Sara","F","S",[3,4,4,3]),mk("Paolo","M","S",[3,3,4,3]),mk("Anna","F","P",[3,4,4,4]),mk("Elena","F","L",[2,5,5,2]),mk("Davide","M","C",[3,3,3,3])];
+const pos={4:p[0].id,3:p[1].id,2:p[2].id,5:p[3].id,6:p[4].id,1:p[5].id};
+const sc={id:uid(),name:"Ricezione",pos};
+return{players:p,schemes:[sc],cur:sc.id,rules:{minF:2,minM:2,maxMF:2,v:2}};
+}
+function load(){try{const v=localStorage.getItem("volley-v1");if(v){const o=JSON.parse(v);if(o&&o.players&&o.schemes&&o.schemes.length){if(!o.rules||o.rules.v!==2)o.rules={minF:2,minM:2,maxMF:2,v:2};return o}}}catch(e){}return seed()}
+function save(){try{localStorage.setItem("volley-v1",JSON.stringify(S))}catch(e){}}
+let S=load(),sel=null;
+const cur=()=>S.schemes.find(s=>s.id===S.cur)||S.schemes[0];
+const pl=id=>S.players.find(p=>p.id===id);
+const avg=p=>(p.r.reduce((a,b)=>a+b,0)/p.r.length).toFixed(1);
+const zoneOf=id=>{const c=cur();for(let z=1;z<=6;z++)if(c.pos[z]===id)return z;return 0};
+
+function render(){
+S.cur=cur().id;
+$("#tabs").innerHTML=S.schemes.map(s=>`<button class="tab ${s.id===S.cur?"on":""}" data-id="${s.id}">${esc(s.name||"Senza nome")} · ${KINDS[s.kind||"ric"].slice(0,3)}.</button>`).join("")+`<button id="new">+ Nuovo schema</button>`;
+$("#sname").value=cur().name;
+$("#skind").innerHTML=Object.keys(KINDS).map(k=>`<option value="${k}"${(cur().kind||"ric")===k?" selected":""}>${KINDS[k]}</option>`).join("");
+$("#rF").value=S.rules.minF;$("#rM").value=S.rules.minM;$("#rX").value=S.rules.maxMF;
+$("#tools").innerHTML=`<span class="tl">Segna:</span>`+Object.keys(MARKS).map(k=>`<button class="tool ${tool===k?"on":""}" data-m="${k}" aria-pressed="${tool===k}">${MARKS[k].s} ${MARKS[k].n}</button>`).join("")+`<button data-m="clear" class="x">Togli tutti</button>`;
+drawCourt();drawChecks();drawRoster();drawRots();
+$("#hint").textContent=sel?(sel.t==="p"?`${esc(pl(sel.id).name)} è scelto: tocca una zona del campo.`:`Zona ${sel.z} scelta: tocca un’altra zona per scambiare.`):(tool?"Simbolo “"+MARKS[tool].n+"” attivo: tocca un giocatore in campo per metterlo o toglierlo. Tocca di nuovo il pulsante per smettere.":"Trascina i giocatori dall’elenco sul campo, oppure da una zona all’altra per spostarli o scambiarli.");
+save();
+}
+const badges=(c,id,cx,cy)=>((c.marks||{})[id]||[]).map((k,i)=>`<circle cx="${cx+42}" cy="${cy-22+i*26}" r="12" fill="#ffd43b" stroke="#fff" stroke-width="2"/><text x="${cx+42}" y="${cy-17+i*26}" text-anchor="middle" font-size="14" font-weight="700" fill="#222">${MARKS[k].s}</text>`).join("");
+function toggleMark(id,k){const c=cur();c.marks=c.marks||{};const a=c.marks[id]||[];c.marks[id]=a.includes(k)?a.filter(x=>x!==k):[...a,k]}
+function drawCourt(){
+const c=cur();let g="";
+const sw=[1,2,3,4,5,6].filter(z=>((c.marks||{})[c.pos[z]]||[]).includes("sw"));
+let ln="";
+if(sw.length===2){const P=z=>[20+COLX[z]*120+60,(FRONT.includes(z)?40:210)+75];const a=P(sw[0]),b=P(sw[1]);ln=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#ffe066" stroke-width="6" stroke-dasharray="3 9" stroke-linecap="round" pointer-events="none"/>`}
+for(let z=1;z<=6;z++){
+const front=FRONT.includes(z),x=20+COLX[z]*120,y=front?40:210,cx=x+60,cy=y+75;
+const p=pl(c.pos[z]);const on=sel&&sel.t==="z"&&sel.z===z;
+g+=`<g class="zone${p?" has":""}" data-z="${z}" role="button" tabindex="0" aria-label="Zona ${z}">
+<rect x="${x}" y="${y}" width="120" height="170" fill="${on?"rgba(255,255,255,.3)":"rgba(255,255,255,.06)"}" stroke="var(--court-ink)" stroke-width="${on?4:1.5}" stroke-opacity="${on?1:.55}"/>
+<text x="${x+8}" y="${y+20}" font-size="15" fill="var(--court-ink)" opacity=".6" font-family="Barlow Condensed,sans-serif" font-weight="700">${z}</text>`;
+if(p){g+=`<g class="pp"><path transform="translate(${cx} ${cy})" d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="var(--${p.sex==="F"?"f":"m"})" stroke="${p.fipav?"#2f9e44":"#fff"}" stroke-width="3" stroke-linejoin="round"/>
+<text x="${cx}" y="${cy+8}" text-anchor="middle" font-size="24" font-weight="700" fill="#fff" font-family="Barlow Condensed,sans-serif">${p.role}</text>
+<text x="${cx}" y="${cy+50}" text-anchor="middle" font-size="15" font-weight="600" fill="var(--court-ink)">${esc(p.name.slice(0,12))}</text>
+<text x="${cx}" y="${cy+67}" text-anchor="middle" font-size="12" fill="var(--court-ink)" opacity=".75">${ROLES[p.role]} · ${avg(p)}</text>${badges(c,p.id,cx,cy)}</g>`}
+else g+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="13" fill="var(--court-ink)" opacity=".5">libero</text>`;
+g+=`</g>`;
+}
+$("#court").innerHTML=`<svg viewBox="0 0 400 392" role="img" aria-label="Campo visto dall’alto"><rect x="0" y="0" width="400" height="392" fill="#2f5d45"/><rect x="20" y="40" width="360" height="340" fill="var(--wood)"/>
+<rect x="20" y="40" width="360" height="340" fill="none" stroke="#fff" stroke-width="3"/>
+<line x1="20" y1="210" x2="380" y2="210" stroke="#fff" stroke-width="3"/>
+<defs><pattern id="mesh" width="8" height="6" patternUnits="userSpaceOnUse"><path d="M0 0H8M0 0V6" stroke="#fff" stroke-opacity=".65" stroke-width=".8" fill="none"/></pattern></defs><rect x="14" y="28" width="372" height="12" fill="url(#mesh)" stroke="#fff" stroke-width="2"/><line x1="14" y1="40" x2="14" y2="12" stroke="#fff" stroke-width="3" stroke-linecap="round"/><line x1="386" y1="40" x2="386" y2="12" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+<text x="200" y="24" text-anchor="middle" font-size="13" fill="var(--court-ink)" font-weight="600">Rete</text>${ln}${g}</svg>`;
+}
+function problems(pos){
+const on=[1,2,3,4,5,6].map(z=>pl(pos[z])).filter(Boolean);
+const f=on.filter(p=>p.sex==="F").length,m=on.length-f,R=S.rules,w=[];
+const mf=FRONT.filter(z=>{const p=pl(pos[z]);return p&&p.sex==="M"}).length;
+const lf=FRONT.some(z=>{const p=pl(pos[z]);return p&&p.role==="L"});
+if(on.length<6)w.push("Mancano giocatori");
+if(f<R.minF)w.push(`Donne ${f} su ${R.minF}`);
+if(m<R.minM)w.push(`Uomini ${m} su ${R.minM}`);
+if(mf>R.maxMF)w.push(`${mf} uomini in prima linea`);
+if(lf)w.push("Libero davanti");
+if(on.filter(p=>p.fipav).length>1)w.push("2 FIPAV in campo");
+return w;
+}
+function drawRots(){
+let pos=cur().pos,h="";
+for(let k=0;k<6;k++){
+const w=problems(pos);
+let g=`<rect x="5" y="8" width="120" height="100" fill="var(--wood)" stroke="var(--court-ink)" stroke-width="1.5"/><line x1="5" y1="58" x2="125" y2="58" stroke="var(--court-ink)" stroke-dasharray="4 3" opacity=".6"/><rect x="2" y="3" width="126" height="4" rx="2" fill="var(--court-ink)"/>`;
+for(let z=1;z<=6;z++){
+const p=pl(pos[z]);if(!p)continue;
+const cx=5+COLX[z]*40+20,cy=(FRONT.includes(z)?8:58)+20;
+g+=`<path transform="translate(${cx} ${cy}) scale(.5)" d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="var(--${p.sex==="F"?"f":"m"})" stroke="${p.fipav?"#2f9e44":"#fff"}" stroke-width="5" stroke-linejoin="round"/><text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">${p.role}</text><text x="${cx}" y="${cy+25}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--court-ink)">${esc(p.name.slice(0,8))}</text>`;
+}
+h+=`<div class="rc ${k===0?"now":""} ${w.length?"warn":""}" data-k="${k}" role="button" tabindex="0"><svg viewBox="0 0 130 112" role="img" aria-label="Rotazione ${k}">${g}</svg><strong>${k===0?"Schema attuale":"Dopo "+k+(k===1?" rotazione":" rotazioni")}</strong><small class="${w.length?"bad":"good"}">${w.length?w.join(" · "):"Formazione valida"}</small></div>`;
+pos=ROT(pos);
+}
+$("#rots").innerHTML=h;
+}
+function drawChecks(){
+const c=cur(),on=[1,2,3,4,5,6].map(z=>pl(c.pos[z])).filter(Boolean);
+const f=on.filter(p=>p.sex==="F").length,m=on.length-f;
+const mf=FRONT.filter(z=>{const p=pl(c.pos[z]);return p&&p.sex==="M"}).length;
+const lf=FRONT.some(z=>{const p=pl(c.pos[z]);return p&&p.role==="L"});
+const w=[],R=S.rules;
+if(on.length<6)w.push(`In campo ci sono ${on.length} giocatori su 6.`);
+if(f<R.minF)w.push(`Servono almeno ${R.minF} donne in campo (ora ${f}).`);
+if(m<R.minM)w.push(`Servono almeno ${R.minM} uomini in campo (ora ${m}).`);
+if(mf>R.maxMF)w.push(`Troppi uomini in prima linea: ${mf} (massimo ${R.maxMF}).`);
+if(lf)w.push("Il libero non può stare in prima linea.");
+const fp=on.filter(p=>p.fipav).length;
+if(fp>1)w.push(`Troppi tesserati FIPAV serie D / 1ª div in campo: ${fp} (massimo 1).`);
+const ab=on.filter(p=>p.pres===false);
+if(ab.length)w.push(`In campo ci sono giocatori assenti: ${ab.map(p=>p.name).join(", ")}.`);
+const pr=S.players.filter(p=>p.pres!==false),nL=pr.filter(p=>p.role==="L").length,mx=pr.length<=8?0:pr.length<=11?1:2;
+$("#pcount").textContent=`Presenti ${pr.length} su ${S.players.length}`;
+if(pr.length>14)w.push(`Troppi presenti in distinta: ${pr.length} (massimo 14).`);
+if(nL>mx)w.push(`Con ${pr.length} presenti i liberi ammessi sono ${mx} (ora ${nL}).`);
+$("#court").classList.toggle("bad",w.length>0);
+$("#checks").innerHTML=w.length?w.map(t=>`<li>${t}</li>`).join(""):`<li class="ok">Formazione valida: ${f} donne e ${m} uomini, ${mf} uomini in prima linea.</li>`;
+}
+function drawRoster(){
+$("#roster").innerHTML=[...S.players].sort((a,b)=>{const k=p=>{const z=zoneOf(p.id);return z?z:(p.pres===false?9:7)};return k(a)-k(b)}).map(p=>{
+const z=zoneOf(p.id),on=sel&&sel.t==="p"&&sel.id===p.id;
+const rt=["Att","Ric","Dif","Bat"].map((l,i)=>`<label class="rt">${l}<input type="number" min="1" max="5" data-r="${i}" value="${p.r[i]}"></label>`).join("");
+return`<div class="pl ${on?"sel":""} ${open===p.id?"open":""} ${p.pres===false?"off":""}" data-id="${p.id}">
+<div class="row"><span class="dot grip ${p.sex==="F"?"f":"m"}${p.fipav?" fp":""}" data-grip="1" title="Trascina sul campo" aria-label="Trascina sul campo">${p.role}</span><span class="name nm"><b>${esc(p.name)}</b><small class="rl">${ROLES[p.role]}</small></span>
+<label class="pr" title="Presente"><input type="checkbox" data-k="pres"${p.pres===false?"":" checked"} aria-label="Presente"></label><small class="st">${p.fipav?"FIPAV · ":""}${p.pres===false?"Assente":(z?"Zona "+z:"Panchina")}</small><button class="tg" data-tg="1" aria-label="Mostra o nascondi i dettagli">▾</button><button class="x" data-del="1" aria-label="Elimina giocatore">Elimina</button></div>
+<div class="row"><input class="name" data-k="name" value="${esc(p.name)}" placeholder="Nome" aria-label="Modifica nome"><select data-k="sex" aria-label="Sesso"><option value="F"${p.sex==="F"?" selected":""}>Donna</option><option value="M"${p.sex==="M"?" selected":""}>Uomo</option></select>
+<select data-k="role" aria-label="Ruolo">${Object.keys(ROLES).map(r=>`<option value="${r}"${p.role===r?" selected":""}>${ROLES[r]}</option>`).join("")}</select>${rt}</div>
+<div class="row"><label class="ck"><input type="checkbox" data-k="fipav"${p.fipav?" checked":""}> Tesserato FIPAV serie D / 1ª div</label></div>
+<div class="row"><button class="pick" data-pick="1">${z?`In campo, zona ${z}`:"In panchina"} · ${on?"scelto, tocca una zona":"tocca per scegliere"}</button><span class="avg">Media ${avg(p)}</span></div></div>`}).join("")||`<p class="hint">Nessun giocatore: aggiungi il primo.</p>`;
+}
+function zoneClick(z){
+const c=cur();
+if(tool&&!sel&&c.pos[z]){toggleMark(c.pos[z],tool);render();return}
+if(sel&&sel.t==="p"){
+const old=zoneOf(sel.id),occ=c.pos[z];
+if(old)c.pos[old]=occ||null;
+c.pos[z]=sel.id;
+sel=null;
+}else if(sel&&sel.t==="z"){
+if(sel.z!==z){const a=c.pos[sel.z];c.pos[sel.z]=c.pos[z]||null;c.pos[z]=a}
+sel=null;
+}else if(c.pos[z])sel={t:"z",z};
+render();
+}
+let drag=null;
+const zoneAt=e=>{const r=$("#court svg").getBoundingClientRect();const x=(e.clientX-r.left)*400/r.width,y=(e.clientY-r.top)*392/r.height;if(x<20||x>380||y<40||y>380)return 0;const c=Math.min(2,Math.floor((x-20)/120));return(y<210?[4,3,2]:[5,6,1])[c]};
+$("#court").addEventListener("pointerdown",e=>{
+const g=e.target.closest("[data-z]");if(!g||e.button>0)return;
+const z=+g.dataset.z;
+drag={z,sx:e.clientX,sy:e.clientY,moved:false,empty:!cur().pos[z],g,id:e.pointerId};
+if(!drag.empty)$("#court").setPointerCapture(e.pointerId);
+});
+$("#court").addEventListener("pointermove",e=>{
+if(!drag||drag.empty||e.pointerId!==drag.id)return;
+const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;
+if(!drag.moved){if(Math.hypot(dx,dy)<6)return;drag.moved=true;drag.g.parentNode.appendChild(drag.g)}
+const s=$("#court svg"),k=400/s.getBoundingClientRect().width;
+drag.g.querySelector(".pp").setAttribute("transform",`translate(${dx*k} ${dy*k})`);
+const t=zoneAt(e);
+s.querySelectorAll("[data-z]").forEach(g=>{g.querySelector("rect").setAttribute("fill",+g.dataset.z===t&&t!==drag.z?"rgba(255,255,255,.3)":"rgba(255,255,255,.06)")});
+});
+$("#court").addEventListener("pointerup",e=>{
+if(!drag||e.pointerId!==drag.id)return;
+const d=drag;drag=null;
+if(d.moved){const t=zoneAt(e);if(t&&t!==d.z){sel={t:"z",z:d.z};zoneClick(t)}else{sel=null;render()}}
+else zoneClick(d.z);
+});
+$("#court").addEventListener("pointercancel",()=>{if(drag){const m=drag.moved;drag=null;if(m)render()}});
+$("#court").addEventListener("touchmove",e=>{if(drag&&!drag.empty)e.preventDefault()},{passive:false});
+$("#court").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){const g=e.target.closest("[data-z]");if(g){e.preventDefault();zoneClick(+g.dataset.z)}}});
+$("#tabs").addEventListener("click",e=>{
+if(e.target.id==="new"){const s={id:uid(),name:"Schema "+(S.schemes.length+1),pos:{}};S.schemes.push(s);S.cur=s.id;sel=null;render()}
+else if(e.target.dataset.id){S.cur=e.target.dataset.id;sel=null;render()}
+});
+$("#tools").addEventListener("click",e=>{const b=e.target.closest("[data-m]");if(!b)return;const k=b.dataset.m;if(k==="clear")cur().marks={};else tool=tool===k?null:k;sel=null;render()});
+$("#rots").addEventListener("click",e=>{
+const d=e.target.closest("[data-k]");if(!d)return;
+const k=+d.dataset.k;if(!k)return;
+let pos=cur().pos;for(let i=0;i<k;i++)pos=ROT(pos);
+cur().pos=pos;sel=null;render();
+});
+$("#rots").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){const d=e.target.closest("[data-k]");if(d){e.preventDefault();d.click()}}});
+$("#skind").addEventListener("change",e=>{cur().kind=e.target.value;render()});
+$("#sname").addEventListener("change",e=>{cur().name=e.target.value;render()});
+$("#rot").addEventListener("click",()=>{cur().pos=ROT(cur().pos);sel=null;render()});
+$("#rotb").addEventListener("click",()=>{cur().pos=ROTB(cur().pos);sel=null;render()});
+$("#dup").addEventListener("click",()=>{const s={id:uid(),name:cur().name+" copia",kind:cur().kind||"ric",pos:{...cur().pos},marks:JSON.parse(JSON.stringify(cur().marks||{}))};S.schemes.push(s);S.cur=s.id;sel=null;render()});
+$("#del").addEventListener("click",()=>{
+if(S.schemes.length<2){cur().pos={};sel=null;render();return}
+if(!confirm("Eliminare lo schema “"+cur().name+"”?"))return;
+S.schemes=S.schemes.filter(s=>s.id!==S.cur);S.cur=S.schemes[0].id;sel=null;render();
+});
+$("#add").addEventListener("click",()=>{const n={id:uid(),name:"Nuovo giocatore",sex:"F",role:"S",r:[3,3,3,3]};S.players.push(n);open=n.id;render()});
+$("#roster").addEventListener("click",e=>{
+const card=e.target.closest(".pl");if(!card)return;const id=card.dataset.id;
+if(e.target.closest("[data-tg]")||(e.target.closest(".row")===card.firstElementChild&&!e.target.closest("[data-grip],[data-del],.pr"))){open=open===id?null:id;render();return}
+if(e.target.dataset.del){
+if(!confirm("Eliminare "+pl(id).name+"?"))return;
+S.players=S.players.filter(p=>p.id!==id);
+S.schemes.forEach(s=>{for(const z in s.pos)if(s.pos[z]===id)s.pos[z]=null});sel=null;render();
+}else if(e.target.dataset.pick){sel=sel&&sel.t==="p"&&sel.id===id?null:{t:"p",id};render()}
+});
+const hl=t=>$("#court svg").querySelectorAll("[data-z]").forEach(g=>g.querySelector("rect").setAttribute("fill",+g.dataset.z===t?"rgba(255,255,255,.3)":"rgba(255,255,255,.06)"));
+$("#roster").addEventListener("pointerdown",e=>{
+const h=e.target.closest("[data-grip]");if(!h||e.button>0)return;
+e.preventDefault();
+const id=h.closest(".pl").dataset.id;
+const gh=h.cloneNode(true);gh.removeAttribute("data-grip");gh.classList.add("ghost");
+gh.style.transform=`translate(${e.clientX-24}px,${e.clientY-24}px)`;
+document.body.appendChild(gh);
+h.setPointerCapture(e.pointerId);
+const mv=ev=>{gh.style.transform=`translate(${ev.clientX-24}px,${ev.clientY-24}px)`;hl(zoneAt(ev))};
+const end=ev=>{
+h.removeEventListener("pointermove",mv);h.removeEventListener("pointerup",end);h.removeEventListener("pointercancel",end);
+gh.remove();hl(0);
+const t=ev.type==="pointerup"?zoneAt(ev):0;
+if(t){sel={t:"p",id};zoneClick(t)}else render();
+};
+h.addEventListener("pointermove",mv);h.addEventListener("pointerup",end);h.addEventListener("pointercancel",end);
+});
+$("#roster").addEventListener("change",e=>{
+const card=e.target.closest(".pl");if(!card)return;const p=pl(card.dataset.id),k=e.target.dataset.k;
+if(k)p[k]=e.target.type==="checkbox"?e.target.checked:e.target.value;
+else if(e.target.dataset.r!==undefined){p.r[+e.target.dataset.r]=Math.min(5,Math.max(1,+e.target.value||1))}
+render();
+});
+$("#rLib").addEventListener("click",()=>{S.rules={minF:2,minM:2,maxMF:2,v:2};render()});
+[["rF","minF"],["rM","minM"],["rX","maxMF"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{S.rules[k]=Math.max(0,+e.target.value||0);render()}));
+const bt=$("#bkText"),bm=$("#bkMsg");
+$("#bkMake").addEventListener("click",()=>{bt.value=JSON.stringify(S);bm.textContent="Backup pronto: copialo e salvalo o mandalo.";bt.focus();bt.select()});
+$("#bkCopy").addEventListener("click",async()=>{
+if(!bt.value){bm.textContent="Prima premi “Prepara backup”.";return}
+try{await navigator.clipboard.writeText(bt.value);bm.textContent="Copiato."}
+catch(e){bt.focus();bt.select();try{document.execCommand("copy");bm.textContent="Copiato."}catch(e2){bm.textContent="Seleziona il testo e copialo a mano."}}
+});
+$("#bkLoad").addEventListener("click",()=>{
+let o;
+try{o=JSON.parse(bt.value.trim());if(!o||!Array.isArray(o.players)||!Array.isArray(o.schemes)||!o.schemes.length)throw 0}
+catch(e){bm.textContent="Il testo non è un backup valido.";return}
+if(!confirm("Sostituire i dati di questo dispositivo con il backup?"))return;
+S=o;if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};
+sel=null;open=null;tool=null;render();bm.textContent="Backup caricato.";
+});
+render();
+</script>
+</body>
+</html>
