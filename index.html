@@ -81,6 +81,27 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 .nm{display:flex;gap:8px;align-items:baseline;min-width:0;overflow:hidden;padding:0 2px}
 .nm b{flex:none;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;color:var(--muted);font-size:13px}
+.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -14px 10px;padding:0 14px 2px;scroll-snap-type:x proximity}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;white-space:nowrap;scroll-snap-align:start}
+.tabs #new{border-style:dashed;color:var(--muted)}
+.top{flex-wrap:nowrap;align-items:stretch}
+.top #sname{flex:1 1 0;min-width:0;font-weight:600}
+.top select{flex:none;max-width:130px}
+.menu{position:relative;flex:none}
+.menu>button{height:100%;min-width:42px;font-size:20px;line-height:1;padding:0 10px}
+.pop{position:absolute;right:0;top:calc(100% + 4px);z-index:20;min-width:180px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:6px;display:flex;flex-direction:column;gap:4px}
+.pop[hidden]{display:none}
+.pop button{text-align:left;border-color:transparent;padding:10px 12px}
+.pop button:hover{background:var(--bg)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:9px 8px;background:var(--bg);font-weight:600}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button:active{background:var(--sel);color:#fff}
+.tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-14px;margin-right:-14px;padding:0 14px 2px}
+.tools::-webkit-scrollbar{display:none}
+.tools button{flex:none;white-space:nowrap;border-radius:999px;padding:6px 12px}
+@media(min-width:860px){.tabs,.tools{margin-left:0;margin-right:0;padding-left:0;padding-right:0;flex-wrap:wrap}.seg{max-width:340px}}
 .grip.fp{box-shadow:0 0 0 2px #2f9e44}
 .tg{padding:2px 9px;transition:transform .15s}.pl.open .tg{transform:rotate(180deg)}
 .tool.on{background:var(--sel);color:#fff;border-color:var(--sel)}
@@ -97,15 +118,14 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 <div class="grid">
 <section class="card">
 <div class="tabs" id="tabs"></div>
-<div class="bar">
-<input id="sname" aria-label="Nome dello schema">
+<div class="bar top">
+<input id="sname" aria-label="Nome dello schema" placeholder="Nome schema">
 <select id="skind" aria-label="Tipo di schema"></select>
-<button id="rotb" title="Ruota in senso antiorario">Ruota indietro</button>
-<button id="rot" title="Ruota in senso orario">Ruota avanti</button>
-<button id="dup">Duplica</button>
-<button id="del" class="x">Elimina</button>
+<div class="menu"><button id="more" type="button" aria-label="Altre azioni" aria-haspopup="true" aria-expanded="false">⋯</button>
+<div class="pop" id="pop" hidden><button id="dup" type="button">⧉ Duplica schema</button><button id="del" type="button" class="x">✕ Elimina schema</button></div></div>
 </div>
-<div class="bar" id="tools"></div>
+<div class="seg" role="group" aria-label="Rotazione"><button id="rotb" type="button" title="Ruota in senso antiorario">↺ Indietro</button><button id="rot" type="button" title="Ruota in senso orario">Avanti ↻</button></div>
+<div class="bar tools" id="tools"></div>
 <div id="court"></div>
 <div class="legend"><span><i class="dot f"></i>Donna</span><span><i class="dot m"></i>Uomo</span><span><i class="dot" style="background:transparent;border:2px solid #2f9e44"></i>Contorno verde = tesserato FIPAV</span><span>P palleggiatore · S schiacciatore · O opposto · C centrale · L libero</span></div>
 <p class="hint" id="hint"></p>
@@ -163,11 +183,12 @@ const zoneOf=id=>{const c=cur();for(let z=1;z<=6;z++)if(c.pos[z]===id)return z;r
 
 function render(){
 S.cur=cur().id;
-$("#tabs").innerHTML=S.schemes.map(s=>`<button class="tab ${s.id===S.cur?"on":""}" data-id="${s.id}">${esc(s.name||"Senza nome")} · ${KINDS[s.kind||"ric"].slice(0,3)}.</button>`).join("")+`<button id="new">+ Nuovo schema</button>`;
+$("#tabs").innerHTML=S.schemes.map(s=>`<button class="tab ${s.id===S.cur?"on":""}" data-id="${s.id}">${esc(s.name||"Senza nome")} · ${KINDS[s.kind||"ric"].slice(0,3)}.</button>`).join("")+`<button id="new">＋ Nuovo</button>`;
+const on=$("#tabs .tab.on");if(on&&on.scrollIntoView)on.scrollIntoView({block:"nearest",inline:"nearest"});
 $("#sname").value=cur().name;
 $("#skind").innerHTML=Object.keys(KINDS).map(k=>`<option value="${k}"${(cur().kind||"ric")===k?" selected":""}>${KINDS[k]}</option>`).join("");
 $("#rF").value=S.rules.minF;$("#rM").value=S.rules.minM;$("#rX").value=S.rules.maxMF;
-$("#tools").innerHTML=`<span class="tl">Segna:</span>`+Object.keys(MARKS).map(k=>`<button class="tool ${tool===k?"on":""}" data-m="${k}" aria-pressed="${tool===k}">${MARKS[k].s} ${MARKS[k].n}</button>`).join("")+`<button data-m="clear" class="x">Togli tutti</button>`;
+$("#tools").innerHTML=Object.keys(MARKS).map(k=>`<button class="tool ${tool===k?"on":""}" data-m="${k}" aria-pressed="${tool===k}">${MARKS[k].s} ${MARKS[k].n}</button>`).join("")+`<button data-m="clear" class="x" title="Togli tutti i simboli">✕ Pulisci</button>`;
 drawCourt();drawChecks();drawRoster();drawRots();
 $("#hint").textContent=sel?(sel.t==="p"?`${esc(pl(sel.id).name)} è scelto: tocca una zona del campo.`:`Zona ${sel.z} scelta: tocca un’altra zona per scambiare.`):(tool?"Simbolo “"+MARKS[tool].n+"” attivo: tocca un giocatore in campo per metterlo o toglierlo. Tocca di nuovo il pulsante per smettere.":"Trascina i giocatori dall’elenco sul campo, oppure da una zona all’altra per spostarli o scambiarli.");
 save();
@@ -312,6 +333,10 @@ let pos=cur().pos;for(let i=0;i<k;i++)pos=ROT(pos);
 cur().pos=pos;sel=null;render();
 });
 $("#rots").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){const d=e.target.closest("[data-k]");if(d){e.preventDefault();d.click()}}});
+const pop=(v)=>{$("#pop").hidden=!v;$("#more").setAttribute("aria-expanded",String(!!v))};
+$("#more").addEventListener("click",e=>{e.stopPropagation();pop($("#pop").hidden)});
+document.addEventListener("click",e=>{if(!e.target.closest(".menu"))pop(false);else if(e.target.closest("#pop button"))pop(false)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")pop(false)});
 $("#skind").addEventListener("change",e=>{cur().kind=e.target.value;render()});
 $("#sname").addEventListener("change",e=>{cur().name=e.target.value;render()});
 $("#rot").addEventListener("click",()=>{cur().pos=ROT(cur().pos);sel=null;render()});
