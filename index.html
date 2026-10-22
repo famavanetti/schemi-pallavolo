@@ -60,7 +60,7 @@ details input{width:58px}
 .tl{color:var(--muted);align-self:center}
 .rg{display:grid;gap:6px;grid-template-columns:repeat(2,1fr)}
 @media(min-width:560px){.rg{grid-template-columns:repeat(3,1fr)}}
-.side{display:grid;gap:16px;min-width:0}
+@media(min-width:860px){.rg{grid-template-columns:repeat(6,1fr)}}
 .rc{border:1px solid var(--line);border-radius:8px;padding:4px;cursor:pointer;background:var(--bg)}
 .rc strong{display:block;font-size:12px;line-height:1.2}
 .rc small{font-size:11px;line-height:1.25}
@@ -81,6 +81,47 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 .nm{display:flex;gap:8px;align-items:baseline;min-width:0;overflow:hidden;padding:0 2px}
 .nm b{flex:none;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;color:var(--muted);font-size:13px}
+.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 0 10px;padding:0 0 2px;scroll-snap-type:x proximity}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;white-space:nowrap;scroll-snap-align:start}
+.tabs #new{border-style:dashed;color:var(--muted)}
+.top{flex-wrap:nowrap;align-items:stretch}
+.top #sname{flex:1 1 0;min-width:0;font-weight:600}
+.top select{flex:none;max-width:130px}
+.menu{position:relative;flex:none}
+.menu>button{height:100%;min-width:42px;font-size:20px;line-height:1;padding:0 10px}
+.pop{position:absolute;right:0;top:calc(100% + 4px);z-index:20;min-width:180px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:6px;display:flex;flex-direction:column;gap:4px}
+.pop[hidden]{display:none}
+.pop button{text-align:left;border-color:transparent;padding:10px 12px}
+.pop button:hover{background:var(--bg)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:9px 8px;background:var(--bg);font-weight:600}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button:active{background:var(--sel);color:#fff}
+.tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:0 0 2px}
+.tools::-webkit-scrollbar{display:none}
+.tools button{flex:none;white-space:nowrap;border-radius:999px;padding:6px 12px}
+@media(min-width:860px){.tabs,.tools{flex-wrap:wrap}.top select{max-width:200px}.seg button{padding:10px 12px}}
+@media(min-width:1100px){.wrap{max-width:1480px}.grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}}
+.sl{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:560px){.sl{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:860px){.sl{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(min-width:1100px){.sl{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.sc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:8px}
+.sc.warn{border-color:var(--warn)}
+.sc .op{display:block;text-align:left;border:0;background:none;padding:0;width:100%}
+.sc .op svg{margin-bottom:6px;background:#2f5d45}
+.sc .op strong{display:block;font-size:16px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc small{display:block;font-size:12px;line-height:1.3;color:var(--muted)}
+.sc small.bad{color:var(--warn);font-weight:600}.sc small.good{color:var(--ok)}
+.acts{display:flex;gap:6px;margin-top:auto}
+.acts button{padding:7px 10px}
+.acts .pri{flex:1;background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
+#home .head{margin-bottom:12px}
+.nav{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.nav .sp{flex:1}
+.nav .menu>button{height:auto;padding:6px 14px}
 .grip.fp{box-shadow:0 0 0 2px #2f9e44}
 .tg{padding:2px 9px;transition:transform .15s}.pl.open .tg{transform:rotate(180deg)}
 .tool.on{background:var(--sel);color:#fff;border-color:var(--sel)}
@@ -91,21 +132,25 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 <div class="wrap">
 <header>
 <h1>Schemi pallavolo mista</h1>
-<p>Crea più schemi, scegli i giocatori e controlla le regole. Si modifica dal computer; sul telefono i dati si aggiornano da soli.</p>
+<p>Ogni schema ha la sua pagina: aprilo per modificarlo, duplicarlo o eliminarlo. Si modifica dal computer; sul telefono i dati si aggiornano da soli.</p>
 <div class="bar" id="syncbar"><button id="syncBtn" type="button">⟳ Sincronizza</button><button id="syncKey" type="button">Collega salvataggio</button><span class="st" id="syncMsg" role="status" style="white-space:normal"></span></div>
 </header>
+<div id="home">
+<div class="head"><h2>I tuoi schemi</h2><button id="newS" class="primary" type="button">＋ Nuovo schema</button></div>
+<div id="list" class="sl"></div>
+</div>
+<div id="editor" hidden>
 <div class="grid">
 <section class="card">
-<div class="tabs" id="tabs"></div>
-<div class="bar">
-<input id="sname" aria-label="Nome dello schema">
+<div class="nav"><button id="back" type="button">← Schemi</button><span class="sp"></span>
+<div class="menu"><button id="more" type="button" aria-label="Altre azioni" aria-haspopup="true" aria-expanded="false">⋯</button>
+<div class="pop" id="pop" hidden><button id="dup" type="button">⧉ Duplica schema</button><button id="del" type="button" class="x">✕ Elimina schema</button></div></div></div>
+<div class="bar top">
+<input id="sname" aria-label="Nome dello schema" placeholder="Nome schema">
 <select id="skind" aria-label="Tipo di schema"></select>
-<button id="rotb" title="Ruota in senso antiorario">Ruota indietro</button>
-<button id="rot" title="Ruota in senso orario">Ruota avanti</button>
-<button id="dup">Duplica</button>
-<button id="del" class="x">Elimina</button>
 </div>
-<div class="bar" id="tools"></div>
+<div class="seg" role="group" aria-label="Rotazione"><button id="rotb" type="button" title="Ruota in senso antiorario">↺ Indietro</button><button id="rot" type="button" title="Ruota in senso orario">Avanti ↻</button></div>
+<div class="bar tools" id="tools"></div>
 <div id="court"></div>
 <div class="legend"><span><i class="dot f"></i>Donna</span><span><i class="dot m"></i>Uomo</span><span><i class="dot" style="background:transparent;border:2px solid #2f9e44"></i>Contorno verde = tesserato FIPAV</span><span>P palleggiatore · S schiacciatore · O opposto · C centrale · L libero</span></div>
 <p class="hint" id="hint"></p>
@@ -119,17 +164,16 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 <button id="rLib" type="button">Ripristina regole Libertas Rimini</button>
 </details>
 </section>
-<div class="side">
 <section class="card">
 <div class="head"><h2>Giocatori</h2><span class="st" id="pcount"></span><button id="add">Aggiungi giocatore</button></div>
 <div id="roster"></div>
 </section>
-<section class="card">
+</div>
+<section class="card" style="margin-top:16px">
 <h2>Le 6 rotazioni</h2>
 <p class="hint" style="margin:2px 0 12px">Ogni riquadro mostra la formazione dopo un certo numero di rotazioni e se rispetta le regole. Tocca un riquadro per portarlo in campo.</p>
 <div id="rots" class="rg"></div>
 </section>
-</div>
 </div>
 </div>
 <script>
@@ -149,12 +193,13 @@ const pos={4:p[0].id,3:p[1].id,2:p[2].id,5:p[3].id,6:p[4].id,1:p[5].id};
 const sc={id:uid(),name:"Ricezione",pos};
 return{players:p,schemes:[sc],cur:sc.id,rules:{minF:2,minM:2,maxMF:2,v:2}};
 }
-function load(){try{const v=localStorage.getItem("volley-v1");if(v){const o=JSON.parse(v);if(o&&o.players&&o.schemes&&o.schemes.length){if(!o.rules||o.rules.v!==2)o.rules={minF:2,minM:2,maxMF:2,v:2};return o}}}catch(e){}return seed()}
+function load(){try{const v=localStorage.getItem("volley-v1");if(v){const o=JSON.parse(v);if(o&&o.players&&Array.isArray(o.schemes)){if(!o.rules||o.rules.v!==2)o.rules={minF:2,minM:2,maxMF:2,v:2};return o}}}catch(e){}return seed()}
 const snap=()=>JSON.stringify(S,(k,v)=>k==="updated"?undefined:v);
 let lastJ=null,tm=null;
 function save(){
 if(lastJ===null)lastJ=snap();
-else{const j=snap();if(j!==lastJ){lastJ=j;S.updated=Date.now();clearTimeout(tm);tm=setTimeout(()=>{tm=null;if(tok())sync()},4000)}}
+else{const j=snap();if(j!==lastJ){lastJ=j;S.updated=Date.now();clearTimeout(tm);tm=setTimeout(()=>{tm=null;if(tok())sync()},1500);
+if(API)sm(RO?"Sul telefono le modifiche restano solo qui e verranno sostituite dai dati del PC: modifica dal computer.":tok()?"Modifiche in attesa di salvataggio online…":"Modifiche solo su questo dispositivo: premi “Collega salvataggio” per salvarle online.")}}
 try{localStorage.setItem("volley-v1",JSON.stringify(S))}catch(e){}
 }
 let S=load(),sel=null;
@@ -163,13 +208,51 @@ const pl=id=>S.players.find(p=>p.id===id);
 const avg=p=>(p.r.reduce((a,b)=>a+b,0)/p.r.length).toFixed(1);
 const zoneOf=id=>{const c=cur();for(let z=1;z<=6;z++)if(c.pos[z]===id)return z;return 0};
 
+let view="home";
+function miniSvg(pos){
+let g=`<rect x="5" y="8" width="120" height="100" fill="var(--wood)" stroke="var(--court-ink)" stroke-width="1.5"/><line x1="5" y1="58" x2="125" y2="58" stroke="var(--court-ink)" stroke-dasharray="4 3" opacity=".6"/><rect x="2" y="3" width="126" height="4" rx="2" fill="var(--court-ink)"/>`;
+for(let z=1;z<=6;z++){
+const p=pl(pos[z]);if(!p)continue;
+const cx=5+COLX[z]*40+20,cy=(FRONT.includes(z)?8:58)+20;
+g+=`<path transform="translate(${cx} ${cy}) scale(.5)" d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="var(--${p.sex==="F"?"f":"m"})" stroke="${p.fipav?"#2f9e44":"#fff"}" stroke-width="5" stroke-linejoin="round"/><text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">${p.role}</text><text x="${cx}" y="${cy+25}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--court-ink)">${esc(p.name.slice(0,8))}</text>`;
+}
+return`<svg viewBox="0 0 130 112" aria-hidden="true">${g}</svg>`;
+}
+function drawHome(){
+$("#list").innerHTML=S.schemes.map(s=>{
+const pos=s.pos||{},w=problems(pos);
+return`<div class="sc${w.length?" warn":""}" data-id="${s.id}"><button class="op" type="button" data-open="1" aria-label="Apri ${esc(s.name||"schema")}">${miniSvg(pos)}<strong>${esc(s.name||"Senza nome")}</strong><small>${KINDS[s.kind||"ric"]}</small><small class="${w.length?"bad":"good"}">${w.length?esc(w.join(" · ")):"Formazione valida"}</small></button><div class="acts"><button type="button" class="pri" data-open="1">Modifica</button><button type="button" data-dup="1" aria-label="Duplica" title="Duplica">⧉</button><button type="button" class="x" data-del="1" aria-label="Elimina" title="Elimina">✕</button></div></div>`;
+}).join("")||`<p class="hint">Nessuno schema: creane uno con “Nuovo schema”.</p>`;
+}
+function route(){
+const m=location.hash.match(/^#s=(.+)$/);
+sel=null;tool=null;open=null;
+if(m&&S.schemes.some(s=>s.id===m[1])){S.cur=m[1];view="edit"}else view="home";
+render();window.scrollTo(0,0);
+}
+function go(h){if(location.hash===h||(!location.hash&&!h))route();else location.hash=h}
+function dupScheme(id,openIt){
+const o=S.schemes.find(s=>s.id===id);if(!o)return;
+const n={id:uid(),name:(o.name||"Schema")+" copia",kind:o.kind||"ric",pos:{...o.pos},marks:JSON.parse(JSON.stringify(o.marks||{}))};
+S.schemes.push(n);
+if(openIt)go("#s="+n.id);else render();
+}
+function delScheme(id){
+const o=S.schemes.find(s=>s.id===id);if(!o)return;
+if(!confirm("Eliminare lo schema “"+(o.name||"Senza nome")+"”?"))return;
+S.schemes=S.schemes.filter(s=>s.id!==id);
+S.cur=(S.schemes[0]||{}).id;
+if(view==="edit")go("");else render();
+}
 function render(){
+const ed=view==="edit"&&S.schemes.length>0;
+$("#home").hidden=ed;$("#editor").hidden=!ed;
+if(!ed){drawHome();save();return}
 S.cur=cur().id;
-$("#tabs").innerHTML=S.schemes.map(s=>`<button class="tab ${s.id===S.cur?"on":""}" data-id="${s.id}">${esc(s.name||"Senza nome")} · ${KINDS[s.kind||"ric"].slice(0,3)}.</button>`).join("")+`<button id="new">+ Nuovo schema</button>`;
 $("#sname").value=cur().name;
 $("#skind").innerHTML=Object.keys(KINDS).map(k=>`<option value="${k}"${(cur().kind||"ric")===k?" selected":""}>${KINDS[k]}</option>`).join("");
 $("#rF").value=S.rules.minF;$("#rM").value=S.rules.minM;$("#rX").value=S.rules.maxMF;
-$("#tools").innerHTML=`<span class="tl">Segna:</span>`+Object.keys(MARKS).map(k=>`<button class="tool ${tool===k?"on":""}" data-m="${k}" aria-pressed="${tool===k}">${MARKS[k].s} ${MARKS[k].n}</button>`).join("")+`<button data-m="clear" class="x">Togli tutti</button>`;
+$("#tools").innerHTML=Object.keys(MARKS).map(k=>`<button class="tool ${tool===k?"on":""}" data-m="${k}" aria-pressed="${tool===k}">${MARKS[k].s} ${MARKS[k].n}</button>`).join("")+`<button data-m="clear" class="x" title="Togli tutti i simboli">✕ Pulisci</button>`;
 drawCourt();drawChecks();drawRoster();drawRots();
 $("#hint").textContent=sel?(sel.t==="p"?`${esc(pl(sel.id).name)} è scelto: tocca una zona del campo.`:`Zona ${sel.z} scelta: tocca un’altra zona per scambiare.`):(tool?"Simbolo “"+MARKS[tool].n+"” attivo: tocca un giocatore in campo per metterlo o toglierlo. Tocca di nuovo il pulsante per smettere.":"Trascina i giocatori dall’elenco sul campo, oppure da una zona all’altra per spostarli o scambiarli.");
 save();
@@ -302,10 +385,14 @@ else zoneClick(d.z);
 $("#court").addEventListener("pointercancel",()=>{if(drag){const m=drag.moved;drag=null;if(m)render()}});
 $("#court").addEventListener("touchmove",e=>{if(drag&&!drag.empty)e.preventDefault()},{passive:false});
 $("#court").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){const g=e.target.closest("[data-z]");if(g){e.preventDefault();zoneClick(+g.dataset.z)}}});
-$("#tabs").addEventListener("click",e=>{
-if(e.target.id==="new"){const s={id:uid(),name:"Schema "+(S.schemes.length+1),pos:{}};S.schemes.push(s);S.cur=s.id;sel=null;render()}
-else if(e.target.dataset.id){S.cur=e.target.dataset.id;sel=null;render()}
+$("#list").addEventListener("click",e=>{
+const c=e.target.closest(".sc");if(!c)return;const id=c.dataset.id;
+if(e.target.closest("[data-del]"))delScheme(id);
+else if(e.target.closest("[data-dup]"))dupScheme(id,false);
+else if(e.target.closest("[data-open]"))go("#s="+id);
 });
+$("#newS").addEventListener("click",()=>{const s={id:uid(),name:"Schema "+(S.schemes.length+1),kind:"ric",pos:{}};S.schemes.push(s);S.cur=s.id;go("#s="+s.id)});
+$("#back").addEventListener("click",()=>go(""));
 $("#tools").addEventListener("click",e=>{const b=e.target.closest("[data-m]");if(!b)return;const k=b.dataset.m;if(k==="clear")cur().marks={};else tool=tool===k?null:k;sel=null;render()});
 $("#rots").addEventListener("click",e=>{
 const d=e.target.closest("[data-k]");if(!d)return;
@@ -314,16 +401,16 @@ let pos=cur().pos;for(let i=0;i<k;i++)pos=ROT(pos);
 cur().pos=pos;sel=null;render();
 });
 $("#rots").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){const d=e.target.closest("[data-k]");if(d){e.preventDefault();d.click()}}});
+const pop=(v)=>{$("#pop").hidden=!v;$("#more").setAttribute("aria-expanded",String(!!v))};
+$("#more").addEventListener("click",e=>{e.stopPropagation();pop($("#pop").hidden)});
+document.addEventListener("click",e=>{if(!e.target.closest(".menu"))pop(false);else if(e.target.closest("#pop button"))pop(false)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")pop(false)});
 $("#skind").addEventListener("change",e=>{cur().kind=e.target.value;render()});
 $("#sname").addEventListener("change",e=>{cur().name=e.target.value;render()});
 $("#rot").addEventListener("click",()=>{cur().pos=ROT(cur().pos);sel=null;render()});
 $("#rotb").addEventListener("click",()=>{cur().pos=ROTB(cur().pos);sel=null;render()});
-$("#dup").addEventListener("click",()=>{const s={id:uid(),name:cur().name+" copia",kind:cur().kind||"ric",pos:{...cur().pos},marks:JSON.parse(JSON.stringify(cur().marks||{}))};S.schemes.push(s);S.cur=s.id;sel=null;render()});
-$("#del").addEventListener("click",()=>{
-if(S.schemes.length<2){cur().pos={};sel=null;render();return}
-if(!confirm("Eliminare lo schema “"+cur().name+"”?"))return;
-S.schemes=S.schemes.filter(s=>s.id!==S.cur);S.cur=S.schemes[0].id;sel=null;render();
-});
+$("#dup").addEventListener("click",()=>dupScheme(S.cur,true));
+$("#del").addEventListener("click",()=>delScheme(S.cur));
 $("#add").addEventListener("click",()=>{const n={id:uid(),name:"Nuovo giocatore",sex:"F",role:"S",r:[3,3,3,3]};S.players.push(n);open=n.id;render()});
 $("#roster").addEventListener("click",e=>{
 const card=e.target.closest(".pl");if(!card)return;const id=card.dataset.id;
@@ -374,18 +461,18 @@ if(r.status===404){sha=null;return null}
 if(!r.ok)throw r.status;
 const j=await r.json();sha=j.sha;
 const o=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\s/g,"")))));
-if(!o||!Array.isArray(o.players)||!Array.isArray(o.schemes)||!o.schemes.length)throw 0;
+if(!o||!Array.isArray(o.players)||!Array.isArray(o.schemes))throw 0;
 return o;
 }
 async function push(){
 if(!S.updated){S.updated=Date.now();save()}
 const b={message:"Aggiornamento dati",content:btoa(unescape(encodeURIComponent(JSON.stringify(S))))};
 if(sha)b.sha=sha;
-const r=await fetch(API,{method:"PUT",headers:hd(1),body:JSON.stringify(b)});
+const r=await fetch(API,{method:"PUT",headers:hd(1),body:JSON.stringify(b),keepalive:true});
 if(!r.ok)throw r.status;
 const j=await r.json();sha=j.content.sha;
 }
-function adopt(o){S=o;if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};if(!S.schemes.some(x=>x.id===S.cur))S.cur=S.schemes[0].id;lastJ=snap();sel=null;open=null;tool=null;render()}
+function adopt(o){S=o;if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};if(!S.schemes.some(x=>x.id===S.cur))S.cur=(S.schemes[0]||{}).id;lastJ=snap();route()}
 async function sync(){
 if(!API)return;
 if(busy){again=true;return}
@@ -414,10 +501,12 @@ if(t===null)return;
 try{localStorage.setItem("volley-token",t.trim())}catch(e){}
 sync();
 });
-document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync();else if(tm&&tok()){clearTimeout(tm);tm=null;sync()}});
+window.addEventListener("pagehide",()=>{if(tm&&tok()){clearTimeout(tm);tm=null;sync()}});
 if(!API)$("#syncbar").style.display="none";
 if(RO)$("#syncKey").style.display="none";
-render();
+window.addEventListener("hashchange",route);
+route();
 sync();
 </script>
 </body>
