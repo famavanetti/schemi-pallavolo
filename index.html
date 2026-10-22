@@ -60,7 +60,7 @@ details input{width:58px}
 .tl{color:var(--muted);align-self:center}
 .rg{display:grid;gap:6px;grid-template-columns:repeat(2,1fr)}
 @media(min-width:560px){.rg{grid-template-columns:repeat(3,1fr)}}
-@media(min-width:860px){.rg{grid-template-columns:repeat(6,1fr)}}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
 .rc{border:1px solid var(--line);border-radius:8px;padding:4px;cursor:pointer;background:var(--bg)}
 .rc strong{display:block;font-size:12px;line-height:1.2}
 .rc small{font-size:11px;line-height:1.25}
@@ -164,16 +164,18 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 <button id="rLib" type="button">Ripristina regole Libertas Rimini</button>
 </details>
 </section>
+<div class="col">
 <section class="card">
 <div class="head"><h2>Giocatori</h2><span class="st" id="pcount"></span><button id="add">Aggiungi giocatore</button></div>
 <div id="roster"></div>
 </section>
-</div>
-<section class="card" style="margin-top:16px">
+<section class="card">
 <h2>Le 6 rotazioni</h2>
 <p class="hint" style="margin:2px 0 12px">Ogni riquadro mostra la formazione dopo un certo numero di rotazioni e se rispetta le regole. Tocca un riquadro per portarlo in campo.</p>
 <div id="rots" class="rg"></div>
 </section>
+</div>
+</div>
 </div>
 </div>
 <script>
