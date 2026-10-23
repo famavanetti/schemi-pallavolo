@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Amministrazione · Schemi pallavolo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Condensed:wght@700&display=swap">
+<style>
+:root{--bg:#eef1f4;--surface:#fff;--ink:#15202b;--muted:#5b6b7a;--line:#d5dce3;--sel:#f08c00;--ok:#2b8a3e;--warn:#c92a2a;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--bg:#10151b;--surface:#19212a;--ink:#e8edf2;--muted:#9aa8b6;--line:#2b3641;--ok:#69db7c;--warn:#ff8787;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 "Barlow",system-ui,sans-serif}
+.wrap{max-width:680px;margin:0 auto;padding:16px}
+h1,h2{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:700;margin:0}
+h1{font-size:30px}h2{font-size:21px;margin-bottom:4px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:16px}
+.hint{color:var(--muted);font-size:14px;margin:2px 0 0}
+#st{color:var(--muted);font-size:14px;min-height:20px;margin:2px 0 0}
+button,input{font:inherit;color:inherit}
+button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0;width:100%}
+button:focus-visible,input:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row b{font-weight:600}
+.sw{min-width:52px;font-weight:700;border-width:2px}
+.sw[aria-pressed="true"]{color:var(--ok);border-color:var(--ok)}
+.sw[aria-pressed="false"]{color:var(--warn);border-color:var(--warn)}
+.add{display:flex;gap:8px;margin:10px 0 4px}
+.add button{flex:none;background:var(--sel);border-color:var(--sel);color:#fff;font-weight:600}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+li .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+li.off .n{color:var(--muted);text-decoration:line-through}
+.x{color:var(--warn)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Amministrazione</h1>
+<p id="st" role="status"></p>
+
+<section class="card" id="conn" hidden>
+<h2>Collega questo computer</h2>
+<p class="hint">Incolla il token GitHub (lo stesso del sito). Resta salvato solo su questo dispositivo.</p>
+<div class="add"><input id="tk" type="password" placeholder="github_pat_…" aria-label="Token GitHub"><button id="tkOk" type="button">Collega</button></div>
+</section>
+
+<div id="main" hidden>
+<section class="card">
+<h2>Accesso generale</h2>
+<div class="row"><span><b>Sito attivo</b><p class="hint">NO = per tutti compare solo il messaggio qui sotto.</p></span><button class="sw" id="site" type="button"></button></div>
+<div class="row"><span><b>Link senza codice</b><p class="hint">Il link già inviato non ha codice. Metti NO quando tutti hanno il loro link personale.</p></span><button class="sw" id="guest" type="button"></button></div>
+<div style="padding-top:10px;border-top:1px solid var(--line)"><label for="msg"><b>Messaggio per chi è bloccato</b></label>
+<input id="msg" maxlength="140" placeholder="Accesso non attivo. Contatta l’amministratore."></div>
+</section>
+
+<section class="card">
+<h2>Persone</h2>
+<p class="hint">Ognuno ha un link personale. SI = può aprire il sito, NO = vede solo il messaggio.</p>
+<div class="add"><input id="nn" maxlength="40" placeholder="Nome (es. Marco)" aria-label="Nome della persona"><button id="addb" type="button">Aggiungi</button></div>
+<ul id="list"></ul>
+</section>
+</div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mm=location.hostname.match(/^([^.]+)\.github\.io$/),rp=location.pathname.split("/")[1];
+const API=mm&&rp?"https://api.github.com/repos/"+mm[1]+"/"+rp+"/contents/access.json":null;
+const base=location.href.replace(/[^/]*([?#].*)?$/,"");
+const tok=()=>{try{return localStorage.getItem("volley-token")||""}catch(e){return""}};
+const st=t=>{$("#st").textContent=t};
+let C={siteActive:true,guestActive:true,message:"",users:[]},sha=null,q=Promise.resolve();
+const H=w=>{const h={Accept:"application/vnd.github+json",Authorization:"Bearer "+tok()};if(w)h["Content-Type"]="application/json";return h};
+const err=e=>e===401?"Token non valido o scaduto: collegalo di nuovo.":(e===403||e===404)?"Permesso negato: il token deve avere Contents → Read and write.":(e===409||e===422)?"Conflitto: ricarica la pagina e riprova.":"Nessuna connessione.";
+
+async function load(){
+const r=await fetch(API+"?t="+Date.now(),{headers:H(),cache:"no-store"});
+if(r.status===404){sha=null;return}
+if(!r.ok)throw r.status;
+const j=await r.json();sha=j.sha;
+C=Object.assign(C,JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\s/g,""))))));
+if(!Array.isArray(C.users))C.users=[];
+}
+function save(){
+q=q.then(async()=>{
+st("Salvataggio…");
+try{
+const b={message:"Aggiornamento accessi",content:btoa(unescape(encodeURIComponent(JSON.stringify(C,null,1))))};
+if(sha)b.sha=sha;
+const r=await fetch(API,{method:"PUT",headers:H(1),body:JSON.stringify(b)});
+if(!r.ok)throw r.status;
+sha=(await r.json()).content.sha;
+st("Salvato ✓ "+new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}));
+}catch(e){st(err(e))}
+});
+}
+function sw(el,on){el.setAttribute("aria-pressed",on);el.textContent=on?"SI":"NO"}
+function render(){
+sw($("#site"),C.siteActive!==false);sw($("#guest"),C.guestActive!==false);
+$("#msg").value=C.message||"";
+$("#list").innerHTML=C.users.map(u=>{const on=u.active!==false;return`<li class="${on?"":"off"}" data-id="${u.id}"><span class="n">${esc(u.name)}</span><button class="sw" data-a="act" type="button" aria-pressed="${on}" aria-label="Attivo: ${esc(u.name)}">${on?"SI":"NO"}</button><button data-a="cp" type="button">Copia link</button><button class="x" data-a="del" type="button" aria-label="Elimina ${esc(u.name)}">✕</button></li>`}).join("")||`<li class="hint">Nessuna persona: aggiungi la prima qui sopra.</li>`;
+}
+$("#site").onclick=()=>{C.siteActive=C.siteActive===false;render();save()};
+$("#guest").onclick=()=>{C.guestActive=C.guestActive===false;render();save()};
+$("#msg").onchange=e=>{C.message=e.target.value.trim();save()};
+function add(){
+const n=$("#nn").value.trim();if(!n)return;
+C.users.push({id:Math.random().toString(36).slice(2,8),name:n,active:true});
+$("#nn").value="";render();save();
+}
+$("#addb").onclick=add;
+$("#nn").onkeydown=e=>{if(e.key==="Enter")add()};
+$("#list").onclick=async e=>{
+const b=e.target.closest("[data-a]");if(!b)return;
+const li=b.closest("li"),u=C.users.find(x=>x.id===li.dataset.id);if(!u)return;
+if(b.dataset.a==="act"){u.active=u.active===false;render();save()}
+else if(b.dataset.a==="del"){if(confirm("Eliminare "+u.name+"? Il suo link smetterà di funzionare.")){C.users=C.users.filter(x=>x!==u);render();save()}}
+else{
+const link=base+"?u="+u.id;
+try{await navigator.clipboard.writeText(link);st("Link di "+u.name+" copiato ✓")}catch(_){prompt("Copia il link di "+u.name+":",link)}
+}
+};
+async function init(){
+if(!API){st("Apri questa pagina dal sito pubblicato (…github.io/…).");return}
+$("#conn").hidden=!!tok();$("#main").hidden=!tok();
+if(!tok()){st("Collega il token per gestire gli accessi.");return}
+st("Caricamento…");
+try{await load();render();st("Pronto.")}catch(e){st(err(e));if(e===401)$("#conn").hidden=false}
+}
+$("#tkOk").onclick=()=>{const t=$("#tk").value.trim();if(!t)return;try{localStorage.setItem("volley-token",t)}catch(e){}$("#tk").value="";init()};
+init();
+</script>
+</body>
+</html>
