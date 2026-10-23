@@ -14,6 +14,11 @@ st.textContent=
 "#btool .sw{width:44px;height:44px;border-radius:50%;padding:0;border:3px solid var(--line)}"+
 "#btool .sw.on{border-color:var(--ink)}"+
 "#bsvg{flex:1;min-height:0;height:100%;touch-action:none;user-select:none;-webkit-user-select:none}";
+st.textContent+=
+"#back{background:#ffd43b;border-color:#e0a800;color:#15202b;font-weight:600}"+
+"#back:hover{background:#ffca1a;border-color:#c99700}"+
+".wbtn{background:#1b5cb0;border-color:#144a8f;color:#fff;font-weight:600}"+
+".wbtn:hover{background:#174f98;border-color:#103d75}";
 document.head.appendChild(st);
 
 document.body.insertAdjacentHTML("beforeend",
