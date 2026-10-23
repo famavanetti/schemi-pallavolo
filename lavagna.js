@@ -50,7 +50,7 @@ var g='<rect width="400" height="392" fill="#2f5d45"/><rect x="20" y="40" width=
 for(var z=1;z<=6;z++){
 var p=pl(c.pos[z]);if(!p)continue;
 var d=bpos(p.id);
-g+='<g data-t="'+p.id+'" transform="translate('+d[0]+' '+d[1]+')" style="cursor:grab"><circle r="24" fill="'+(p.sex==="F"?"#d6336c":"#1c7ed6")+'" stroke="#fff" stroke-width="3"/><text y="8" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">'+p.role+'</text><text y="42" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">'+esc(p.name.slice(0,10))+'</text></g>';
+g+='<g data-t="'+p.id+'" transform="translate('+d[0]+' '+d[1]+')" style="cursor:grab"><circle r="24" fill="#15202b" stroke="#fff" stroke-width="3"/><text y="8" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">'+p.role+'</text></g>';
 }
 b.s.forEach(function(k){
 var P=k.p,sty='fill="none" stroke="'+k.c+'" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"';
@@ -78,7 +78,6 @@ bui();
 });
 document.getElementById("bundo").addEventListener("click",function(){BB().s.pop();save();drawBoard()});
 document.getElementById("bclr").addEventListener("click",function(){
-if(!confirm("Cancellare tutti i disegni e riportare i giocatori al loro posto?"))return;
 S.board={s:[],p:{}};save();drawBoard();
 });
 bs.addEventListener("pointerdown",function(e){
