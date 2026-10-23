@@ -115,4 +115,22 @@ c.toBlob(function(b){var a=document.createElement("a");a.href=URL.createObjectUR
 i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s);
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!document.getElementById("board").hidden)closeBoard()});
+
+/* Pulsante Amministrazione: compare solo se il token e' collegato (cioe' solo per l'amministratore sul PC). */
+var sb=document.getElementById("syncbar");
+if(sb){
+var st2=document.createElement("style");
+st2.textContent="#admBtn{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}";
+document.head.appendChild(st2);
+var ab=document.createElement("button");
+ab.type="button";ab.id="admBtn";ab.hidden=true;ab.textContent="\u2699 Amministrazione";
+ab.addEventListener("click",function(){location.href="admin.html"});
+var sk=document.getElementById("syncKey");
+sb.insertBefore(ab,sk?sk.nextSibling:null);
+var updAdm=function(){ab.hidden=!(typeof tok==="function"&&tok())};
+updAdm();
+if(sk)sk.addEventListener("click",function(){setTimeout(updAdm,0)});
+window.addEventListener("focus",updAdm);
+document.addEventListener("visibilitychange",updAdm);
+}
 })();
