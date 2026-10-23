@@ -50,7 +50,7 @@ var g='<rect width="400" height="392" fill="#2f5d45"/><rect x="20" y="40" width=
 for(var z=1;z<=6;z++){
 var p=pl(c.pos[z]);if(!p)continue;
 var d=bpos(p.id);
-g+='<g data-t="'+p.id+'" transform="translate('+d[0]+' '+d[1]+')" style="cursor:grab"><circle r="24" fill="#15202b" stroke="#fff" stroke-width="3"/><text y="8" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">'+p.role+'</text></g>';
+g+='<g data-t="'+p.id+'" transform="translate('+d[0]+' '+d[1]+')" style="cursor:grab"><path d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="#15202b" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></g>';
 }
 b.s.forEach(function(k){
 var P=k.p,sty='fill="none" stroke="'+k.c+'" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"';
