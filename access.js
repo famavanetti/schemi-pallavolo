@@ -16,13 +16,18 @@
   var code = ls("volley-u"), root = document.documentElement, done = false;
   root.style.visibility = "hidden";
 
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
   function decide(c) {
     if (!c) return "";
     var msg = c.message || "Accesso non attivo. Contatta l’amministratore.";
     if (c.siteActive === false) return msg;
     if (code) {
       var u = (c.users || []).filter(function (x) { return x.id === code; })[0];
-      return u && u.active !== false ? "" : msg;
+      if (!u || u.active === false) return msg;
+      return u.exp && today() > u.exp ? "Accesso scaduto. Contatta l’amministratore." : "";
     }
     return c.guestActive === false ? "Serve il link personale che ti ha inviato l’amministratore." : "";
   }

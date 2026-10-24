@@ -39,6 +39,11 @@ li.off .n{color:var(--muted);text-decoration:line-through}
 .back:hover{background:#ffca1a}
 .role{font-weight:600;white-space:nowrap}
 .role.ed{background:#ffd43b;border-color:#e0a800;color:#15202b}
+li{flex-wrap:wrap}
+li .n{flex:1 1 110px}
+li .n small{font-weight:400;color:var(--muted)}
+li .n small.bad{color:var(--warn);font-weight:600}
+li input.dt{width:auto;flex:none;padding:5px 6px}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -105,11 +110,13 @@ st("Salvato ✓ "+new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"
 }catch(e){st(err(e))}
 });
 }
+const todayS=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const fmtD=s=>s.split("-").reverse().join("/");
 function sw(el,on){el.setAttribute("aria-pressed",on);el.textContent=on?"SI":"NO"}
 function render(){
 sw($("#site"),C.siteActive!==false);sw($("#guest"),C.guestActive!==false);
 $("#msg").value=C.message||"";
-$("#list").innerHTML=C.users.map(u=>{const on=u.active!==false;return`<li class="${on?"":"off"}" data-id="${u.id}"><span class="n">${esc(u.name)}</span><button class="role${u.role==="editor"?" ed":""}" data-a="role" type="button" title="Cambia ruolo">${u.role==="editor"?"Gestore":"Solo vista"}</button><button class="sw" data-a="act" type="button" aria-pressed="${on}" aria-label="Attivo: ${esc(u.name)}">${on?"SI":"NO"}</button><button data-a="cp" type="button">Copia link</button><button class="x" data-a="del" type="button" aria-label="Elimina ${esc(u.name)}">✕</button></li>`}).join("")||`<li class="hint">Nessuna persona: aggiungi la prima qui sopra.</li>`;
+$("#list").innerHTML=C.users.map(u=>{const on=u.active!==false;return`<li class="${on?"":"off"}" data-id="${u.id}"><span class="n">${esc(u.name)}${u.exp?` <small class="${u.exp<todayS()?"bad":""}">${u.exp<todayS()?"· scaduto il ":"· scade il "}${fmtD(u.exp)}</small>`:""}</span><input class="dt" type="date" data-a="exp" value="${u.exp||""}" aria-label="Scadenza di ${esc(u.name)}" title="Scadenza (vuoto = mai)"><button class="role${u.role==="editor"?" ed":""}" data-a="role" type="button" title="Cambia ruolo">${u.role==="editor"?"Gestore":"Solo vista"}</button><button class="sw" data-a="act" type="button" aria-pressed="${on}" aria-label="Attivo: ${esc(u.name)}">${on?"SI":"NO"}</button><button data-a="cp" type="button">Copia link</button><button data-a="wa" type="button">WhatsApp</button><button class="x" data-a="del" type="button" aria-label="Elimina ${esc(u.name)}">✕</button></li>`}).join("")||`<li class="hint">Nessuna persona: aggiungi la prima qui sopra.</li>`;
 }
 $("#site").onclick=()=>{C.siteActive=C.siteActive===false;render();save()};
 $("#guest").onclick=()=>{C.guestActive=C.guestActive===false;render();save()};
@@ -122,15 +129,26 @@ $("#nn").value="";render();save();
 $("#addb").onclick=add;
 $("#nn").onkeydown=e=>{if(e.key==="Enter")add()};
 $("#list").onclick=async e=>{
-const b=e.target.closest("[data-a]");if(!b)return;
+const b=e.target.closest("[data-a]");if(!b||b.dataset.a==="exp")return;
 const li=b.closest("li"),u=C.users.find(x=>x.id===li.dataset.id);if(!u)return;
 if(b.dataset.a==="act"){u.active=u.active===false;render();save()}
 else if(b.dataset.a==="role"){u.role=u.role==="editor"?"viewer":"editor";render();save()}
+else if(b.dataset.a==="wa"){
+const link=base+"?u="+u.id;
+const txt="Ciao "+u.name+", ecco il tuo link personale per gli schemi di pallavolo: "+link;
+window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank","noopener");
+}
 else if(b.dataset.a==="del"){if(confirm("Eliminare "+u.name+"? Il suo link smetterà di funzionare.")){C.users=C.users.filter(x=>x!==u);render();save()}}
 else{
 const link=base+"?u="+u.id;
 try{await navigator.clipboard.writeText(link);st("Link di "+u.name+" copiato ✓")}catch(_){prompt("Copia il link di "+u.name+":",link)}
 }
+};
+$("#list").onchange=e=>{
+const i=e.target.closest(".dt");if(!i)return;
+const u=C.users.find(x=>x.id===i.closest("li").dataset.id);if(!u)return;
+if(i.value)u.exp=i.value;else delete u.exp;
+render();save();
 };
 async function init(){
 if(!API){st("Apri questa pagina dal sito pubblicato (…github.io/…).");return}
