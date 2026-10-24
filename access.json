@@ -7,7 +7,10 @@
    "id": "de1nbg",
    "name": "Daniele",
    "active": true,
-   "role": "editor"
+   "role": "editor",
+   "schemes": [
+    "cxzgff"
+   ]
   },
   {
    "id": "hetiex",
