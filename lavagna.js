@@ -42,7 +42,16 @@ if(nav&&menu)nav.insertBefore(mkBtn(),menu);
 if(hd)hd.appendChild(mkBtn());
 
 var bt="pen",bc="#ffe066",bd=null,wl=null,bs=document.getElementById("bsvg");
-function BB(){return S.board=S.board||{s:[],p:{}}}
+var board=null;
+function BB(){
+if(!board){
+try{board=JSON.parse(localStorage.getItem("volley-board")||"null")}catch(e){}
+if(!board||!Array.isArray(board.s))board=(S.board&&Array.isArray(S.board.s))?S.board:{s:[],p:{}};
+board.p=board.p||{};
+}
+return board;
+}
+function saveBoard(){try{localStorage.setItem("volley-board",JSON.stringify(board))}catch(e){}}
 function bpos(id){var z=zoneOf(id);return BB().p[id]||[20+COLX[z]*120+60,(FRONT.indexOf(z)>=0?40:210)+85]}
 function bpt(e){var p=bs.createSVGPoint();p.x=e.clientX;p.y=e.clientY;var q=p.matrixTransform(bs.getScreenCTM().inverse());return[Math.round(q.x),Math.round(q.y)]}
 function bui(){
@@ -81,9 +90,9 @@ if(t)bt=t.dataset.bt;
 if(c){bc=c.dataset.bc;if(bt==="move")bt="pen"}
 bui();
 });
-document.getElementById("bundo").addEventListener("click",function(){BB().s.pop();save();drawBoard()});
+document.getElementById("bundo").addEventListener("click",function(){BB().s.pop();saveBoard();drawBoard()});
 document.getElementById("bclr").addEventListener("click",function(){
-S.board={s:[],p:{}};save();drawBoard();
+board={s:[],p:{}};saveBoard();drawBoard();
 });
 bs.addEventListener("pointerdown",function(e){
 e.preventDefault();bs.setPointerCapture(e.pointerId);
@@ -102,7 +111,7 @@ var q=bpt(e);
 if(bd.k)bd.k.p.push(q);else BB().p[bd.m]=[q[0]+bd.ox,q[1]+bd.oy];
 drawBoard();
 });
-function bend(){if(bd){bd=null;save();drawBoard()}}
+function bend(){if(bd){bd=null;saveBoard();drawBoard()}}
 bs.addEventListener("pointerup",bend);
 bs.addEventListener("pointercancel",bend);
 document.getElementById("bpng").addEventListener("click",function(){
@@ -133,4 +142,41 @@ if(sk)sk.addEventListener("click",function(){setTimeout(updAdm,0)});
 window.addEventListener("focus",updAdm);
 document.addEventListener("visibilitychange",updAdm);
 }
+
+/* Ruoli: "viewer" = solo vista (vede gli schemi e usa la lavagna); "editor" e "admin" (token) gestiscono gli schemi. */
+var rs=document.createElement("style");
+rs.textContent=
+".ro-view #newS,.ro-view #add,.ro-view #tools,.ro-view .seg,.ro-view .nav .menu,.ro-view #roster .tg,.ro-view #roster .pr,.ro-view #roster [data-del],.ro-view #roster .pl>.row+.row,.ro-view .acts [data-dup],.ro-view .acts [data-del],.ro-view details{display:none!important}"+
+".ro-view .acts .pri{grid-column:1/-1}"+
+".ro-view .zone,.ro-view .zone.has,.ro-view .grip{cursor:default}";
+document.head.appendChild(rs);
+var ro=false;
+function eff(){return(typeof tok==="function"&&tok())?"admin":(window.volleyRole||"admin")}
+function fixHome(){document.querySelectorAll("#list .acts .pri").forEach(function(b){b.textContent=ro?"Apri":"Modifica"})}
+function applyRole(){
+ro=eff()==="viewer";
+document.body.classList.toggle("ro-view",ro);
+["sname","skind","rF","rM","rX"].forEach(function(i){var e=document.getElementById(i);if(e)e.disabled=ro});
+var t=document.getElementById("roleTag");if(t)t.textContent=ro?"Solo vista":"";
+fixHome();
+}
+var sb2=document.getElementById("syncbar");
+if(sb2&&!document.getElementById("roleTag")){
+var tg=document.createElement("span");tg.className="st";tg.id="roleTag";
+sb2.insertBefore(tg,document.getElementById("syncMsg"));
+}
+new MutationObserver(fixHome).observe(document.getElementById("list"),{childList:true});
+function stop(e){if(ro)e.stopPropagation()}
+var ctEl=document.getElementById("court");
+["pointerdown","keydown"].forEach(function(n){ctEl.addEventListener(n,stop,true)});
+["click","keydown"].forEach(function(n){document.getElementById("rots").addEventListener(n,stop,true)});
+var rsEl=document.getElementById("roster");
+rsEl.addEventListener("pointerdown",function(e){if(e.target.closest&&e.target.closest("[data-grip]"))stop(e)},true);
+rsEl.addEventListener("click",function(e){if(e.target.closest&&e.target.closest("[data-pick],[data-del]"))stop(e)},true);
+rsEl.addEventListener("change",stop,true);
+applyRole();
+document.addEventListener("volleyrole",applyRole);
+window.addEventListener("focus",applyRole);
+var skEl=document.getElementById("syncKey");
+if(skEl)skEl.addEventListener("click",function(){setTimeout(applyRole,0)});
 })();

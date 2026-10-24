@@ -1,7 +1,7 @@
 /* Service worker: l'app funziona anche senza rete.
    Cambia VERSIONE quando vuoi forzare l'aggiornamento di tutti i file in cache. */
-const VERSIONE = "schemi-v1";
-const FILE = ["./", "index.html", "lavagna.js", "pwa.js", "manifest.webmanifest",
+const VERSIONE = "schemi-v4";
+const FILE = ["./", "index.html", "lavagna.js", "pwa.js", "access.js", "manifest.webmanifest",
   "icon-180.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png"];
 
 self.addEventListener("install", e => {

@@ -2,12 +2,14 @@
    Chi ha il token salvato (l'amministratore sul PC) non viene mai bloccato. */
 (function () {
   var m = location.hostname.match(/^([^.]+)\.github\.io$/), repo = location.pathname.split("/")[1];
+  window.volleyRole = "admin";
   if (!m || !repo) return;
   var ls = function (k, v) {
     try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {}
     return null;
   };
   if (ls("volley-token")) return;
+  window.volleyRole = "viewer";
 
   var q = new URLSearchParams(location.search).get("u");
   if (q) ls("volley-u", q);
@@ -35,10 +37,18 @@
     };
     document.body ? go() : document.addEventListener("DOMContentLoaded", go);
   }
+  function roleOf(c) {
+    if (!c) return "editor"; // nessuna configurazione: comportamento di prima
+    if (!code) return "viewer";
+    var u = (c.users || []).filter(function (x) { return x.id === code; })[0];
+    return u && u.role === "editor" ? "editor" : "viewer";
+  }
   function finish(cfg, fresh) {
     if (done) return;
     done = true;
     if (fresh) ls("volley-acc", cfg ? JSON.stringify(cfg) : null);
+    window.volleyRole = roleOf(cfg);
+    try { document.dispatchEvent(new Event("volleyrole")); } catch (e) {}
     var t = decide(cfg);
     t ? block(t) : (root.style.visibility = "visible");
   }

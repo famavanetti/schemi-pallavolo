@@ -35,11 +35,16 @@ li{display:flex;gap:8px;align-items:center;padding:9px 0;border-top:1px solid va
 li .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 li.off .n{color:var(--muted);text-decoration:line-through}
 .x{color:var(--warn)}
+.back{display:inline-block;margin:0 0 10px;padding:7px 12px;border:1px solid #e0a800;border-radius:8px;background:#ffd43b;color:#15202b;font-weight:600;text-decoration:none}
+.back:hover{background:#ffca1a}
+.role{font-weight:600;white-space:nowrap}
+.role.ed{background:#ffd43b;border-color:#e0a800;color:#15202b}
 [hidden]{display:none!important}
 </style>
 </head>
 <body>
 <div class="wrap">
+<a class="back" href="index.html">← Torna agli schemi</a>
 <h1>Amministrazione</h1>
 <p id="st" role="status"></p>
 
@@ -61,6 +66,7 @@ li.off .n{color:var(--muted);text-decoration:line-through}
 <section class="card">
 <h2>Persone</h2>
 <p class="hint">Ognuno ha un link personale. SI = può aprire il sito, NO = vede solo il messaggio.</p>
+<p class="hint"><b>Gestore</b> = può modificare gli schemi. <b>Solo vista</b> = vede gli schemi e usa la lavagna. Chi apre il sito senza codice è sempre in sola vista.</p>
 <div class="add"><input id="nn" maxlength="40" placeholder="Nome (es. Marco)" aria-label="Nome della persona"><button id="addb" type="button">Aggiungi</button></div>
 <ul id="list"></ul>
 </section>
@@ -103,7 +109,7 @@ function sw(el,on){el.setAttribute("aria-pressed",on);el.textContent=on?"SI":"NO
 function render(){
 sw($("#site"),C.siteActive!==false);sw($("#guest"),C.guestActive!==false);
 $("#msg").value=C.message||"";
-$("#list").innerHTML=C.users.map(u=>{const on=u.active!==false;return`<li class="${on?"":"off"}" data-id="${u.id}"><span class="n">${esc(u.name)}</span><button class="sw" data-a="act" type="button" aria-pressed="${on}" aria-label="Attivo: ${esc(u.name)}">${on?"SI":"NO"}</button><button data-a="cp" type="button">Copia link</button><button class="x" data-a="del" type="button" aria-label="Elimina ${esc(u.name)}">✕</button></li>`}).join("")||`<li class="hint">Nessuna persona: aggiungi la prima qui sopra.</li>`;
+$("#list").innerHTML=C.users.map(u=>{const on=u.active!==false;return`<li class="${on?"":"off"}" data-id="${u.id}"><span class="n">${esc(u.name)}</span><button class="role${u.role==="editor"?" ed":""}" data-a="role" type="button" title="Cambia ruolo">${u.role==="editor"?"Gestore":"Solo vista"}</button><button class="sw" data-a="act" type="button" aria-pressed="${on}" aria-label="Attivo: ${esc(u.name)}">${on?"SI":"NO"}</button><button data-a="cp" type="button">Copia link</button><button class="x" data-a="del" type="button" aria-label="Elimina ${esc(u.name)}">✕</button></li>`}).join("")||`<li class="hint">Nessuna persona: aggiungi la prima qui sopra.</li>`;
 }
 $("#site").onclick=()=>{C.siteActive=C.siteActive===false;render();save()};
 $("#guest").onclick=()=>{C.guestActive=C.guestActive===false;render();save()};
@@ -119,6 +125,7 @@ $("#list").onclick=async e=>{
 const b=e.target.closest("[data-a]");if(!b)return;
 const li=b.closest("li"),u=C.users.find(x=>x.id===li.dataset.id);if(!u)return;
 if(b.dataset.a==="act"){u.active=u.active===false;render();save()}
+else if(b.dataset.a==="role"){u.role=u.role==="editor"?"viewer":"editor";render();save()}
 else if(b.dataset.a==="del"){if(confirm("Eliminare "+u.name+"? Il suo link smetterà di funzionare.")){C.users=C.users.filter(x=>x!==u);render();save()}}
 else{
 const link=base+"?u="+u.id;
