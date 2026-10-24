@@ -2,5 +2,11 @@
  "siteActive": false,
  "guestActive": false,
  "message": "",
- "users": []
+ "users": [
+  {
+   "id": "de1nbg",
+   "name": "Daniele",
+   "active": true
+  }
+ ]
 }
