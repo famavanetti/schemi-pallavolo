@@ -12,7 +12,7 @@
   {
    "id": "hetiex",
    "name": "test",
-   "active": true,
+   "active": false,
    "role": "viewer",
    "exp": "2026-10-28"
   }
