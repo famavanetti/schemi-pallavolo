@@ -18,7 +18,10 @@
    "name": "test",
    "active": true,
    "role": "viewer",
-   "exp": "2026-10-28"
+   "exp": "2026-10-28",
+   "schemes": [
+    "cxzgff"
+   ]
   }
  ]
 }
