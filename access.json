@@ -17,7 +17,8 @@
   {
    "id": "dvsxo7",
    "name": "Fabio",
-   "active": true
+   "active": true,
+   "role": "editor"
   }
  ]
 }
