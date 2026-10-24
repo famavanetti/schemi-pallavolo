@@ -12,7 +12,7 @@
    "id": "hetiex",
    "name": "test",
    "active": true,
-   "role": "editor"
+   "role": "viewer"
   }
  ]
 }
