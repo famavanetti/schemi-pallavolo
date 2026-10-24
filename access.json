@@ -12,7 +12,8 @@
    "id": "hetiex",
    "name": "test",
    "active": true,
-   "role": "editor"
+   "role": "editor",
+   "exp": "2026-10-23"
   }
  ]
 }
