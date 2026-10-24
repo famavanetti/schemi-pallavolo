@@ -149,12 +149,15 @@ rs.textContent=
 ".ro-view #newS,.ro-view #add,.ro-view #tools,.ro-view .seg,.ro-view .nav .menu,.ro-view #roster .tg,.ro-view #roster .pr,.ro-view #roster [data-del],.ro-view #roster .pl>.row+.row,.ro-view .acts [data-dup],.ro-view .acts [data-del],.ro-view details{display:none!important}"+
 ".ro-view .acts .pri{grid-column:1/-1}"+
 ".ro-view .zone,.ro-view .zone.has,.ro-view .grip{cursor:default}"+
-".ro-view .col>.card:first-child,.ro-view #checks,.ro-view #hint,.ro-view .legend span:nth-child(3),.ro-view .sc small.bad,.ro-view .sc small.good,.ro-view .rc small{display:none!important}"+
+".ro-view .rostCard,.ro-view #checks,.ro-view #hint,.ro-view .legend span:nth-child(3),.ro-view .sc small.bad,.ro-view .sc small.good,.ro-view .rc small{display:none!important}"+
 ".ro-view .pp text[opacity='.75']{display:none}"+
 ".ro-view svg path[stroke='#2f9e44']{stroke:#fff}"+
 ".ro-view .rc.warn{border:1px solid var(--line)}.ro-view .sc.warn{border-color:var(--line)}.ro-view #court.bad{border-color:transparent}"+
 ".ro-view #syncbar,.ro-view header p{display:none!important}"+
-".no-board .wbtn,.no-board #board{display:none!important}";
+".no-board .wbtn,.no-board #board{display:none!important}"+
+"#schTitle{display:none;margin:0 0 10px}.ro-view #schTitle{display:block}.ro-view .bar.top{display:none!important}"+
+"#convHome{margin-top:16px}.cvl{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}"+
+".cvl li{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}.cvl small{color:var(--muted);margin-left:6px}";
 document.head.appendChild(rs);
 var ro=false;
 function eff(){return(typeof tok==="function"&&tok())?"admin":(window.volleyRole||"admin")}
@@ -165,6 +168,7 @@ var shown=0;
 document.querySelectorAll("#list .sc").forEach(function(c){var h=!!(al&&al.indexOf(c.dataset.id)<0);c.style.display=h?"none":"";if(!h)shown++});
 var n=document.getElementById("noSch");
 if(n)n.style.display=(al&&!shown)?"":"none";
+drawConv();setTitle();
 }
 function guard(){
 if(al&&location.hash.indexOf("#s=")===0&&al.indexOf(location.hash.slice(3))<0)location.hash="";
@@ -184,7 +188,9 @@ if(sb2&&!document.getElementById("roleTag")){
 var tg=document.createElement("span");tg.className="st";tg.id="roleTag";
 sb2.insertBefore(tg,document.getElementById("syncMsg"));
 }
-new MutationObserver(fixHome).observe(document.getElementById("list"),{childList:true});
+var mo=new MutationObserver(fixHome);
+mo.observe(document.getElementById("list"),{childList:true});
+mo.observe(document.getElementById("roster"),{childList:true});
 function stop(e){if(ro)e.stopPropagation()}
 var ctEl=document.getElementById("court");
 ["pointerdown","keydown"].forEach(function(n){ctEl.addEventListener(n,stop,true)});
@@ -196,6 +202,25 @@ rsEl.addEventListener("change",stop,true);
 var lst=document.getElementById("list"),ns=document.createElement("p");
 ns.className="hint";ns.id="noSch";ns.style.display="none";ns.textContent="Nessuno schema condiviso con te al momento.";
 lst.parentNode.insertBefore(ns,lst.nextSibling);
+var rcard=document.getElementById("roster").parentNode;rcard.classList.add("rostCard");
+var cvh=document.createElement("section");cvh.className="card";cvh.id="convHome";cvh.style.display="none";
+ns.parentNode.insertBefore(cvh,ns.nextSibling);
+var cve=document.createElement("section");cve.className="card";cve.id="convEd";cve.style.display="none";
+rcard.parentNode.insertBefore(cve,rcard.parentNode.firstChild);
+var tb=document.querySelector(".bar.top"),sT=document.createElement("h2");sT.id="schTitle";
+tb.parentNode.insertBefore(sT,tb);
+function drawConv(){
+var on=ro&&window.volleyConv===true,h="";
+if(on){
+var pr=S.players.filter(function(p){return p.pres!==false});
+h="<h2>Convocati ("+pr.length+")</h2>"+(pr.length?'<ul class="cvl">'+pr.map(function(p){return"<li><b>"+esc(p.name)+"</b><small>"+ROLES[p.role]+"</small></li>"}).join("")+"</ul>":'<p class="hint">Nessun giocatore convocato.</p>');
+}
+[cvh,cve].forEach(function(c){c.style.display=on?"":"none";if(on)c.innerHTML=h});
+}
+function setTitle(){
+var c=typeof cur==="function"?cur():null;
+if(c)sT.textContent=(c.name||"Senza nome")+" \u00B7 "+(KINDS[c.kind||"ric"]||"");
+}
 window.addEventListener("hashchange",guard);
 applyRole();
 document.addEventListener("volleyrole",applyRole);

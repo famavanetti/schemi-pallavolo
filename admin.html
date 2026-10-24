@@ -123,7 +123,8 @@ const btn=`<button data-a="sch" type="button" title="Quali schemi può vedere">S
 let panel="";
 if(openId===u.id)panel=`<div class="schs">${SCH.length?SCH.map(s=>`<label><input type="checkbox" data-s="${esc(s.id)}"${(!al||al.includes(s.id))?" checked":""}> ${esc(s.name)}</label>`).join(""):`<span class="hint">Nessuno schema trovato.</span>`}<button data-a="all" type="button">Tutti</button></div>`;
 const brd=u.role==="editor"?"":`<button data-a="brd" type="button" title="Può usare la lavagna">Lavagna: ${u.board===true?"SI":"NO"}</button>`;
-return{btn,panel,brd};
+const cv=u.role==="editor"?"":`<button data-a="cv" type="button" title="Può vedere l'elenco dei convocati">Convocati: ${u.conv===true?"SI":"NO"}</button>`;
+return{btn,panel,brd:brd+cv};
 }
 async function loadSch(){
 try{
@@ -155,6 +156,7 @@ const b=e.target.closest("[data-a]");if(!b||b.dataset.a==="exp")return;
 const li=b.closest("li"),u=C.users.find(x=>x.id===li.dataset.id);if(!u)return;
 if(b.dataset.a==="act"){u.active=u.active===false;render();save()}
 else if(b.dataset.a==="role"){u.role=u.role==="editor"?"viewer":"editor";render();save()}
+else if(b.dataset.a==="cv"){u.conv=u.conv!==true;render();save()}
 else if(b.dataset.a==="brd"){u.board=u.board!==true;render();save()}
 else if(b.dataset.a==="sch"){openId=openId===u.id?null:u.id;render()}
 else if(b.dataset.a==="all"){delete u.schemes;render();save()}
