@@ -44,6 +44,9 @@ li .n{flex:1 1 110px}
 li .n small{font-weight:400;color:var(--muted)}
 li .n small.bad{color:var(--warn);font-weight:600}
 li input.dt{width:auto;flex:none;padding:5px 6px}
+.schs{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:6px 0 2px}
+.schs label{display:inline-flex;gap:6px;align-items:center}
+.schs input{width:auto}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -112,11 +115,29 @@ st("Salvato ✓ "+new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"
 }
 const todayS=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const fmtD=s=>s.split("-").reverse().join("/");
+let SCH=[],openId=null;
+function schemeCtl(u){
+const al=Array.isArray(u.schemes)?u.schemes:null;
+const n=al?SCH.filter(s=>al.includes(s.id)).length:SCH.length;
+const btn=`<button data-a="sch" type="button" title="Quali schemi può vedere">Schemi: ${al?n+" di "+SCH.length:"tutti"}</button>`;
+let panel="";
+if(openId===u.id)panel=`<div class="schs">${SCH.length?SCH.map(s=>`<label><input type="checkbox" data-s="${esc(s.id)}"${(!al||al.includes(s.id))?" checked":""}> ${esc(s.name)}</label>`).join(""):`<span class="hint">Nessuno schema trovato.</span>`}<button data-a="all" type="button">Tutti</button></div>`;
+return{btn,panel};
+}
+async function loadSch(){
+try{
+const r=await fetch(API.replace("access.json","volley-data.json")+"?t="+Date.now(),{headers:H(),cache:"no-store"});
+if(!r.ok)return;
+const j=await r.json();
+const o=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\s/g,"")))));
+SCH=(o.schemes||[]).map(s=>({id:s.id,name:s.name||"Senza nome"}));
+}catch(e){}
+}
 function sw(el,on){el.setAttribute("aria-pressed",on);el.textContent=on?"SI":"NO"}
 function render(){
 sw($("#site"),C.siteActive!==false);sw($("#guest"),C.guestActive!==false);
 $("#msg").value=C.message||"";
-$("#list").innerHTML=C.users.map(u=>{const on=u.active!==false;return`<li class="${on?"":"off"}" data-id="${u.id}"><span class="n">${esc(u.name)}${u.exp?` <small class="${u.exp<todayS()?"bad":""}">${u.exp<todayS()?"· scaduto il ":"· scade il "}${fmtD(u.exp)}</small>`:""}</span><input class="dt" type="date" data-a="exp" value="${u.exp||""}" aria-label="Scadenza di ${esc(u.name)}" title="Scadenza (vuoto = mai)"><button class="role${u.role==="editor"?" ed":""}" data-a="role" type="button" title="Cambia ruolo">${u.role==="editor"?"Gestore":"Solo vista"}</button><button class="sw" data-a="act" type="button" aria-pressed="${on}" aria-label="Attivo: ${esc(u.name)}">${on?"SI":"NO"}</button><button data-a="cp" type="button">Copia link</button><button data-a="wa" type="button">WhatsApp</button><button class="x" data-a="del" type="button" aria-label="Elimina ${esc(u.name)}">✕</button></li>`}).join("")||`<li class="hint">Nessuna persona: aggiungi la prima qui sopra.</li>`;
+$("#list").innerHTML=C.users.map(u=>{const on=u.active!==false;const sc=schemeCtl(u);return`<li class="${on?"":"off"}" data-id="${u.id}"><span class="n">${esc(u.name)}${u.exp?` <small class="${u.exp<todayS()?"bad":""}">${u.exp<todayS()?"· scaduto il ":"· scade il "}${fmtD(u.exp)}</small>`:""}</span><input class="dt" type="date" data-a="exp" value="${u.exp||""}" aria-label="Scadenza di ${esc(u.name)}" title="Scadenza (vuoto = mai)"><button class="role${u.role==="editor"?" ed":""}" data-a="role" type="button" title="Cambia ruolo">${u.role==="editor"?"Gestore":"Solo vista"}</button><button class="sw" data-a="act" type="button" aria-pressed="${on}" aria-label="Attivo: ${esc(u.name)}">${on?"SI":"NO"}</button><button data-a="cp" type="button">Copia link</button><button data-a="wa" type="button">WhatsApp</button>${sc.btn}<button class="x" data-a="del" type="button" aria-label="Elimina ${esc(u.name)}">✕</button>${sc.panel}</li>`}).join("")||`<li class="hint">Nessuna persona: aggiungi la prima qui sopra.</li>`;
 }
 $("#site").onclick=()=>{C.siteActive=C.siteActive===false;render();save()};
 $("#guest").onclick=()=>{C.guestActive=C.guestActive===false;render();save()};
@@ -133,6 +154,8 @@ const b=e.target.closest("[data-a]");if(!b||b.dataset.a==="exp")return;
 const li=b.closest("li"),u=C.users.find(x=>x.id===li.dataset.id);if(!u)return;
 if(b.dataset.a==="act"){u.active=u.active===false;render();save()}
 else if(b.dataset.a==="role"){u.role=u.role==="editor"?"viewer":"editor";render();save()}
+else if(b.dataset.a==="sch"){openId=openId===u.id?null:u.id;render()}
+else if(b.dataset.a==="all"){delete u.schemes;render();save()}
 else if(b.dataset.a==="wa"){
 const link=base+"?u="+u.id;
 const txt="Ciao "+u.name+", ecco il tuo link personale per gli schemi di pallavolo: "+link;
@@ -145,6 +168,12 @@ try{await navigator.clipboard.writeText(link);st("Link di "+u.name+" copiato ✓
 }
 };
 $("#list").onchange=e=>{
+const cb=e.target.closest("[data-s]");
+if(cb){
+const li=cb.closest("li"),u=C.users.find(x=>x.id===li.dataset.id);if(!u)return;
+u.schemes=[...li.querySelectorAll("input[data-s]:checked")].map(i=>i.dataset.s);
+render();save();return;
+}
 const i=e.target.closest(".dt");if(!i)return;
 const u=C.users.find(x=>x.id===i.closest("li").dataset.id);if(!u)return;
 if(i.value)u.exp=i.value;else delete u.exp;
@@ -155,7 +184,7 @@ if(!API){st("Apri questa pagina dal sito pubblicato (…github.io/…).");return
 $("#conn").hidden=!!tok();$("#main").hidden=!tok();
 if(!tok()){st("Collega il token per gestire gli accessi.");return}
 st("Caricamento…");
-try{await load();render();st("Pronto.")}catch(e){st(err(e));if(e===401)$("#conn").hidden=false}
+try{await load();await loadSch();render();st("Pronto.")}catch(e){st(err(e));if(e===401)$("#conn").hidden=false}
 }
 $("#tkOk").onclick=()=>{const t=$("#tk").value.trim();if(!t)return;try{localStorage.setItem("volley-token",t)}catch(e){}$("#tk").value="";init()};
 init();

@@ -148,17 +148,33 @@ var rs=document.createElement("style");
 rs.textContent=
 ".ro-view #newS,.ro-view #add,.ro-view #tools,.ro-view .seg,.ro-view .nav .menu,.ro-view #roster .tg,.ro-view #roster .pr,.ro-view #roster [data-del],.ro-view #roster .pl>.row+.row,.ro-view .acts [data-dup],.ro-view .acts [data-del],.ro-view details{display:none!important}"+
 ".ro-view .acts .pri{grid-column:1/-1}"+
-".ro-view .zone,.ro-view .zone.has,.ro-view .grip{cursor:default}";
+".ro-view .zone,.ro-view .zone.has,.ro-view .grip{cursor:default}"+
+".ro-view .col>.card:first-child,.ro-view #checks,.ro-view #hint,.ro-view .legend span:nth-child(3),.ro-view .sc small.bad,.ro-view .sc small.good,.ro-view .rc small{display:none!important}"+
+".ro-view .pp text[opacity='.75']{display:none}"+
+".ro-view svg path[stroke='#2f9e44']{stroke:#fff}"+
+".ro-view .rc.warn{border:1px solid var(--line)}.ro-view .sc.warn{border-color:var(--line)}.ro-view #court.bad{border-color:transparent}";
 document.head.appendChild(rs);
 var ro=false;
 function eff(){return(typeof tok==="function"&&tok())?"admin":(window.volleyRole||"admin")}
-function fixHome(){document.querySelectorAll("#list .acts .pri").forEach(function(b){b.textContent=ro?"Apri":"Modifica"})}
+var al=null;
+function fixHome(){
+document.querySelectorAll("#list .acts .pri").forEach(function(b){b.textContent=ro?"Apri":"Modifica"});
+var shown=0;
+document.querySelectorAll("#list .sc").forEach(function(c){var h=!!(al&&al.indexOf(c.dataset.id)<0);c.style.display=h?"none":"";if(!h)shown++});
+var n=document.getElementById("noSch");
+if(n)n.style.display=(al&&!shown)?"":"none";
+}
+function guard(){
+if(al&&location.hash.indexOf("#s=")===0&&al.indexOf(location.hash.slice(3))<0)location.hash="";
+}
 function applyRole(){
 ro=eff()==="viewer";
+al=ro&&Array.isArray(window.volleyAllowed)?window.volleyAllowed:null;
 document.body.classList.toggle("ro-view",ro);
 ["sname","skind","rF","rM","rX"].forEach(function(i){var e=document.getElementById(i);if(e)e.disabled=ro});
 var t=document.getElementById("roleTag");if(t)t.textContent=ro?"Solo vista":"";
 fixHome();
+guard();
 }
 var sb2=document.getElementById("syncbar");
 if(sb2&&!document.getElementById("roleTag")){
@@ -174,6 +190,10 @@ var rsEl=document.getElementById("roster");
 rsEl.addEventListener("pointerdown",function(e){if(e.target.closest&&e.target.closest("[data-grip]"))stop(e)},true);
 rsEl.addEventListener("click",function(e){if(e.target.closest&&e.target.closest("[data-pick],[data-del]"))stop(e)},true);
 rsEl.addEventListener("change",stop,true);
+var lst=document.getElementById("list"),ns=document.createElement("p");
+ns.className="hint";ns.id="noSch";ns.style.display="none";ns.textContent="Nessuno schema condiviso con te al momento.";
+lst.parentNode.insertBefore(ns,lst.nextSibling);
+window.addEventListener("hashchange",guard);
 applyRole();
 document.addEventListener("volleyrole",applyRole);
 window.addEventListener("focus",applyRole);
