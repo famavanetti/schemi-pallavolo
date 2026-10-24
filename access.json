@@ -11,7 +11,7 @@
   {
    "id": "hetiex",
    "name": "test",
-   "active": false,
+   "active": true,
    "role": "viewer"
   }
  ]
