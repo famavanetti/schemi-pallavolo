@@ -80,6 +80,8 @@ input[type=checkbox]{width:22px;height:22px;padding:0;accent-color:var(--ok);fle
 .pr{display:flex;align-items:center;padding:0 2px;cursor:pointer}
 .ck{display:flex;gap:8px;align-items:center;font-size:14px}
 .pl.off{opacity:.55}
+.pl.call{border-left:5px solid var(--ok)}
+.pl.off .nm b{text-decoration:line-through}
 textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;color:var(--ink);resize:vertical}
 #bk{margin-top:14px}
 .nm{display:flex;gap:8px;align-items:baseline;min-width:0;overflow:hidden;padding:0 2px}
@@ -171,6 +173,7 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 <div class="col">
 <section class="card">
 <div class="head"><h2>Giocatori</h2><span class="st" id="pcount"></span><button id="add">Aggiungi giocatore</button></div>
+<div class="bar"><button id="allOn" type="button">Convoca tutti</button><button id="allOff" type="button">Nessuno</button><label class="ck"><input type="checkbox" id="onlyOn"> Solo convocati</label></div>
 <div id="roster"></div>
 </section>
 <section class="card">
@@ -205,7 +208,7 @@ let lastJ=null,tm=null;
 function save(){
 if(lastJ===null)lastJ=snap();
 else{const j=snap();if(j!==lastJ){lastJ=j;S.updated=Date.now();clearTimeout(tm);tm=setTimeout(()=>{tm=null;if(tok())sync()},1500);
-if(API)sm(RO?"Sul telefono le modifiche restano solo qui e verranno sostituite dai dati del PC: modifica dal computer.":tok()?"Modifiche in attesa di salvataggio online…":"Modifiche solo su questo dispositivo: premi “Collega salvataggio” per salvarle online.")}}
+if(API)sm(RO?"Sul telefono le modifiche restano solo qui e verranno sostituite dai dati del PC: modifica dal computer.":tok()?"Modifiche in attesa di salvataggio online…":"Modifiche solo su questo dispositivo.")}}
 try{localStorage.setItem("volley-v1",JSON.stringify(S))}catch(e){}
 }
 let S=load(),sel=null;
@@ -331,25 +334,26 @@ if(lf)w.push("Il libero non può stare in prima linea.");
 const fp=on.filter(p=>p.fipav).length;
 if(fp>1)w.push(`Troppi tesserati FIPAV serie D / 1ª div in campo: ${fp} (massimo 1).`);
 const ab=on.filter(p=>p.pres===false);
-if(ab.length)w.push(`In campo ci sono giocatori assenti: ${ab.map(p=>p.name).join(", ")}.`);
+if(ab.length)w.push(`In campo ci sono giocatori non convocati: ${ab.map(p=>p.name).join(", ")}.`);
 const pr=S.players.filter(p=>p.pres!==false),nL=pr.filter(p=>p.role==="L").length,mx=pr.length<=8?0:pr.length<=11?1:2;
-$("#pcount").textContent=`Presenti ${pr.length} su ${S.players.length}`;
-if(pr.length>14)w.push(`Troppi presenti in distinta: ${pr.length} (massimo 14).`);
-if(nL>mx)w.push(`Con ${pr.length} presenti i liberi ammessi sono ${mx} (ora ${nL}).`);
+$("#pcount").textContent=`Convocati ${pr.length} su ${S.players.length}`;
+if(pr.length>14)w.push(`Troppi convocati in distinta: ${pr.length} (massimo 14).`);
+if(nL>mx)w.push(`Con ${pr.length} convocati i liberi ammessi sono ${mx} (ora ${nL}).`);
 $("#court").classList.toggle("bad",w.length>0);
 $("#checks").innerHTML=w.length?w.map(t=>`<li>${t}</li>`).join(""):`<li class="ok">Formazione valida: ${f} donne e ${m} uomini, ${mf} uomini in prima linea.</li>`;
 }
+let onlyOn=false;
 function drawRoster(){
-$("#roster").innerHTML=[...S.players].sort((a,b)=>{const k=p=>{const z=zoneOf(p.id);return z?z:(p.pres===false?9:7)};return k(a)-k(b)}).map(p=>{
+$("#roster").innerHTML=[...S.players].filter(p=>!onlyOn||p.pres!==false).sort((a,b)=>{const k=p=>{const z=zoneOf(p.id);return z?z:(p.pres===false?9:7)};return k(a)-k(b)}).map(p=>{
 const z=zoneOf(p.id),on=sel&&sel.t==="p"&&sel.id===p.id;
 const rt=["Att","Ric","Dif","Bat"].map((l,i)=>`<label class="rt">${l}<input type="number" min="1" max="5" data-r="${i}" value="${p.r[i]}"></label>`).join("");
-return`<div class="pl ${on?"sel":""} ${open===p.id?"open":""} ${p.pres===false?"off":""}" data-id="${p.id}">
+return`<div class="pl ${on?"sel":""} ${open===p.id?"open":""} ${p.pres===false?"off":"call"}" data-id="${p.id}">
 <div class="row"><span class="dot grip ${p.sex==="F"?"f":"m"}${p.fipav?" fp":""}" data-grip="1" title="Trascina sul campo" aria-label="Trascina sul campo">${p.role}</span><span class="name nm"><b>${esc(p.name)}</b><small class="rl">${ROLES[p.role]}</small></span>
-<label class="pr" title="Presente"><input type="checkbox" data-k="pres"${p.pres===false?"":" checked"} aria-label="Presente"></label><small class="st">${p.fipav?"FIPAV · ":""}${p.pres===false?"Assente":(z?"Zona "+z:"Panchina")}</small><button class="tg" data-tg="1" aria-label="Mostra o nascondi i dettagli">▾</button><button class="x" data-del="1" aria-label="Elimina giocatore">Elimina</button></div>
+<label class="pr" title="Convocato"><input type="checkbox" data-k="pres"${p.pres===false?"":" checked"} aria-label="Convocato"></label><small class="st">${p.fipav?"FIPAV · ":""}${p.pres===false?"Non convocato":(z?"Zona "+z:"Panchina")}</small><button class="tg" data-tg="1" aria-label="Mostra o nascondi i dettagli">▾</button><button class="x" data-del="1" aria-label="Elimina giocatore">Elimina</button></div>
 <div class="row"><input class="name" data-k="name" value="${esc(p.name)}" placeholder="Nome" aria-label="Modifica nome"><select data-k="sex" aria-label="Sesso"><option value="F"${p.sex==="F"?" selected":""}>Donna</option><option value="M"${p.sex==="M"?" selected":""}>Uomo</option></select>
 <select data-k="role" aria-label="Ruolo">${Object.keys(ROLES).map(r=>`<option value="${r}"${p.role===r?" selected":""}>${ROLES[r]}</option>`).join("")}</select>${rt}</div>
 <div class="row"><label class="ck"><input type="checkbox" data-k="fipav"${p.fipav?" checked":""}> Tesserato FIPAV serie D / 1ª div</label></div>
-<div class="row"><button class="pick" data-pick="1">${z?`In campo, zona ${z}`:"In panchina"} · ${on?"scelto, tocca una zona":"tocca per scegliere"}</button><span class="avg">Media ${avg(p)}</span></div></div>`}).join("")||`<p class="hint">Nessun giocatore: aggiungi il primo.</p>`;
+<div class="row"><button class="pick" data-pick="1">${z?`In campo, zona ${z}`:"In panchina"} · ${on?"scelto, tocca una zona":"tocca per scegliere"}</button><span class="avg">Media ${avg(p)}</span></div></div>`}).join("")||`<p class="hint">${onlyOn?"Nessun giocatore convocato.":"Nessun giocatore: aggiungi il primo."}</p>`;
 }
 function zoneClick(z){
 const c=cur();
@@ -448,9 +452,13 @@ h.addEventListener("pointermove",mv);h.addEventListener("pointerup",end);h.addEv
 $("#roster").addEventListener("change",e=>{
 const card=e.target.closest(".pl");if(!card)return;const p=pl(card.dataset.id),k=e.target.dataset.k;
 if(k)p[k]=e.target.type==="checkbox"?e.target.checked:e.target.value;
+if(k==="pres"&&!p.pres)S.schemes.forEach(s=>{for(const z in s.pos)if(s.pos[z]===p.id)s.pos[z]=null});
 else if(e.target.dataset.r!==undefined){p.r[+e.target.dataset.r]=Math.min(5,Math.max(1,+e.target.value||1))}
 render();
 });
+$("#allOn").addEventListener("click",()=>{S.players.forEach(p=>p.pres=true);render()});
+$("#allOff").addEventListener("click",()=>{S.players.forEach(p=>p.pres=false);S.schemes.forEach(s=>{for(const z in s.pos)s.pos[z]=null});render()});
+$("#onlyOn").addEventListener("change",e=>{onlyOn=e.target.checked;render()});
 $("#rLib").addEventListener("click",()=>{S.rules={minF:2,minM:2,maxMF:2,v:2};render()});
 [["rF","minF"],["rM","minM"],["rX","maxMF"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{S.rules[k]=Math.max(0,+e.target.value||0);render()}));
 const REPO=(()=>{const m=location.hostname.match(/^([^.]+)\.github\.io$/),r=location.pathname.split("/")[1];return m&&r?{o:m[1],r:r}:null})();
@@ -491,7 +499,7 @@ if(rem&&ru>seen){adopt(rem);try{localStorage.setItem("volley-seen",ru)}catch(e){
 else sm(rem?"Già aggiornato ✓":"Nessun dato online: salvali prima dal computer.");
 }else if(rem&&ru>lu){adopt(rem);sm("Dati aggiornati dal salvataggio online ✓")}
 else if(!rem||lu>ru){
-if(!tok())sm("Le modifiche sono solo su questo dispositivo: premi “Collega salvataggio” per condividerle.");
+if(!tok())sm("Le modifiche sono solo su questo dispositivo.");
 else{await push();sm("Salvato online ✓ "+new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}))}
 }else sm("Già aggiornato ✓");
 }catch(e){
@@ -511,6 +519,8 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync();els
 window.addEventListener("pagehide",()=>{if(tm&&tok()){clearTimeout(tm);tm=null;sync()}});
 if(!API)$("#syncbar").style.display="none";
 if(RO)$("#syncKey").style.display="none";
+/* "Collega salvataggio" solo per l'amministratore (chi ha già il token, vedi access.js) */
+if(window.volleyRole==="admin")$("#syncKey").hidden=false;
 window.addEventListener("hashchange",route);
 route();
 sync();
