@@ -13,7 +13,7 @@
    "id": "hetiex",
    "name": "test",
    "active": true,
-   "role": "editor",
+   "role": "viewer",
    "exp": "2026-10-23"
   }
  ]
