@@ -54,6 +54,7 @@
     if (fresh) ls("volley-acc", cfg ? JSON.stringify(cfg) : null);
     var uu = cfg && code ? (cfg.users || []).filter(function (x) { return x.id === code; })[0] : null;
     window.volleyRole = roleOf(cfg);
+    window.volleyBoard = window.volleyRole !== "viewer" || !!(uu && uu.board === true);
     window.volleyAllowed = uu && Array.isArray(uu.schemes) && window.volleyRole === "viewer" ? uu.schemes : null;
     try { document.dispatchEvent(new Event("volleyrole")); } catch (e) {}
     var t = decide(cfg);

@@ -152,7 +152,9 @@ rs.textContent=
 ".ro-view .col>.card:first-child,.ro-view #checks,.ro-view #hint,.ro-view .legend span:nth-child(3),.ro-view .sc small.bad,.ro-view .sc small.good,.ro-view .rc small{display:none!important}"+
 ".ro-view .pp text[opacity='.75']{display:none}"+
 ".ro-view svg path[stroke='#2f9e44']{stroke:#fff}"+
-".ro-view .rc.warn{border:1px solid var(--line)}.ro-view .sc.warn{border-color:var(--line)}.ro-view #court.bad{border-color:transparent}";
+".ro-view .rc.warn{border:1px solid var(--line)}.ro-view .sc.warn{border-color:var(--line)}.ro-view #court.bad{border-color:transparent}"+
+".ro-view #syncbar,.ro-view header p{display:none!important}"+
+".no-board .wbtn,.no-board #board{display:none!important}";
 document.head.appendChild(rs);
 var ro=false;
 function eff(){return(typeof tok==="function"&&tok())?"admin":(window.volleyRole||"admin")}
@@ -171,6 +173,7 @@ function applyRole(){
 ro=eff()==="viewer";
 al=ro&&Array.isArray(window.volleyAllowed)?window.volleyAllowed:null;
 document.body.classList.toggle("ro-view",ro);
+document.body.classList.toggle("no-board",ro&&window.volleyBoard!==true);
 ["sname","skind","rF","rM","rX"].forEach(function(i){var e=document.getElementById(i);if(e)e.disabled=ro});
 var t=document.getElementById("roleTag");if(t)t.textContent=ro?"Solo vista":"";
 fixHome();
