@@ -11,7 +11,8 @@
   {
    "id": "hetiex",
    "name": "test",
-   "active": true
+   "active": true,
+   "role": "editor"
   }
  ]
 }
