@@ -131,6 +131,9 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 .grip.fp{box-shadow:0 0 0 2px #2f9e44}
 .tg{padding:2px 9px;transition:transform .15s}.pl.open .tg{transform:rotate(180deg)}
 .tool.on{background:var(--sel);color:#fff;border-color:var(--sel)}
+.sr{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin-top:6px}
+.sr label{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:14px}
+.sr select{max-width:128px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -158,7 +161,8 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 <div class="seg" role="group" aria-label="Rotazione"><button id="rotb" type="button" title="Ruota in senso antiorario">↺ Indietro</button><button id="rot" type="button" title="Ruota in senso orario">Avanti ↻</button></div>
 <div class="bar tools" id="tools"></div>
 <div id="court"></div>
-<div class="legend"><span><i class="dot f"></i>Donna</span><span><i class="dot m"></i>Uomo</span><span><i class="dot" style="background:transparent;border:2px solid #2f9e44"></i>Contorno verde = tesserato FIPAV</span><span>Sulla maglia: numero di maglia (se assegnato) o iniziale del ruolo · P palleggiatore · S schiacciatore · O opposto · C centrale · L libero</span></div>
+<div id="sroles"></div>
+<div class="legend"><span><i class="dot f"></i>Donna</span><span><i class="dot m"></i>Uomo</span><span><i class="dot" style="background:transparent;border:2px solid #2f9e44"></i>Contorno verde = tesserato FIPAV</span><span>Sulla maglia: numero di maglia (se assegnato) o iniziale del ruolo · P palleggiatore · OP opposto · B banda · C centrale · L libero</span></div>
 <p class="hint" id="hint"></p>
 <ul class="checks" id="checks"></ul>
 <details>
@@ -166,6 +170,7 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 <label>Donne minime in campo <input type="number" id="rF" min="0" max="6"></label>
 <label>Uomini minimi in campo <input type="number" id="rM" min="0" max="6"></label>
 <label>Uomini massimi in prima linea <input type="number" id="rX" min="0" max="3"></label>
+<label><input type="checkbox" id="rO"> Controlla l’ordine dei ruoli (P, OP, 2 B, 2 C)</label>
 <p class="hint">Preimpostato sul regolamento Libertas Rimini 2026-27 (mista): da 2 a 4 donne e da 2 a 4 uomini in campo, almeno 1 donna in prima linea (quindi al massimo 2 uomini davanti), libero solo in seconda linea. Per un altro campionato cambia i valori.</p>
 <button id="rLib" type="button">Ripristina regole Libertas Rimini</button>
 </details>
@@ -186,7 +191,7 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 </div>
 </div>
 <script>
-const ROLES={P:"Palleggiatore",S:"Schiacciatore",O:"Opposto",C:"Centrale",L:"Libero"};
+const ROLES={P:"Palleggiatore",OP:"Opposto",B:"Banda",C:"Centrale",L:"Libero"};const OLD={S:"B",O:"OP"};const CIRC=[1,6,5,4,3,2];
 const MARKS={sw:{s:"⇄",n:"Switch"},bt:{s:"★",n:"Battuta"},at:{s:"!",n:"Attenzione"},mu:{s:"▲",n:"Muro"}};let tool=null;let open=null;
 const KINDS={ric:"Ricezione",bat:"Battuta",dif:"Difesa"};
 const ROT=o=>({1:o[2],6:o[1],5:o[6],4:o[5],3:o[4],2:o[3]});
@@ -197,12 +202,13 @@ const uid=()=>Math.random().toString(36).slice(2,8);
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function seed(){
 const mk=(n,s,r,v)=>({id:uid(),name:n,sex:s,role:r,r:v});
-const p=[mk("Giulia","F","S",[4,3,3,3]),mk("Luca","M","C",[4,3,2,3]),mk("Marco","M","O",[5,3,3,4]),mk("Sara","F","S",[3,4,4,3]),mk("Paolo","M","S",[3,3,4,3]),mk("Anna","F","P",[3,4,4,4]),mk("Elena","F","L",[2,5,5,2]),mk("Davide","M","C",[3,3,3,3])];
+const p=[mk("Giulia","F","B",[4,3,3,3]),mk("Luca","M","C",[4,3,2,3]),mk("Marco","M","OP",[5,3,3,4]),mk("Sara","F","B",[3,4,4,3]),mk("Paolo","M","B",[3,3,4,3]),mk("Anna","F","P",[3,4,4,4]),mk("Elena","F","L",[2,5,5,2]),mk("Davide","M","C",[3,3,3,3])];
 const pos={4:p[0].id,3:p[1].id,2:p[2].id,5:p[3].id,6:p[4].id,1:p[5].id};
 const sc={id:uid(),name:"Ricezione",pos};
 return{players:p,schemes:[sc],cur:sc.id,rules:{minF:2,minM:2,maxMF:2,v:2}};
 }
-function load(){try{const v=localStorage.getItem("volley-v1");if(v){const o=JSON.parse(v);if(o&&o.players&&Array.isArray(o.schemes)){if(!o.rules||o.rules.v!==2)o.rules={minF:2,minM:2,maxMF:2,v:2};return o}}}catch(e){}return seed()}
+function mig(o){o.players.forEach(p=>{if(OLD[p.role])p.role=OLD[p.role];if(!ROLES[p.role])p.role="B";["ro2","ro3"].forEach(k=>{if(OLD[p[k]])p[k]=OLD[p[k]];if(!ROLES[p[k]])p[k]=""})});return o}
+function load(){try{const v=localStorage.getItem("volley-v1");if(v){const o=JSON.parse(v);if(o&&o.players&&Array.isArray(o.schemes)){if(!o.rules||o.rules.v!==2)o.rules={minF:2,minM:2,maxMF:2,v:2};return mig(o)}}}catch(e){}return seed()}
 const snap=()=>JSON.stringify(S,(k,v)=>k==="updated"?undefined:v);
 let lastJ=null,tm=null;
 function save(){
@@ -215,23 +221,25 @@ let S=load(),sel=null;
 const cur=()=>S.schemes.find(s=>s.id===S.cur)||S.schemes[0];
 const pl=id=>S.players.find(p=>p.id===id);
 const avg=p=>(p.r.reduce((a,b)=>a+b,0)/p.r.length).toFixed(1);
-const tag=p=>(p.num!==undefined&&p.num!==null&&String(p.num).trim()!=="")?esc(String(p.num).trim()):p.role;
+const roleList=p=>[p.role,p.ro2,p.ro3].filter((r,i,a)=>r&&ROLES[r]&&a.indexOf(r)===i);
+const eff=(p,c)=>{const r=c&&c.roles&&c.roles[p.id];return r&&ROLES[r]?r:p.role};
+const tag=(p,c)=>(p.num!==undefined&&p.num!==null&&String(p.num).trim()!=="")?esc(String(p.num).trim()):eff(p,c);
 const zoneOf=id=>{const c=cur();for(let z=1;z<=6;z++)if(c.pos[z]===id)return z;return 0};
 
 let view="home";
-function miniSvg(pos){
+function miniSvg(pos,c){
 let g=`<rect x="5" y="8" width="120" height="100" fill="var(--wood)" stroke="var(--court-ink)" stroke-width="1.5"/><line x1="5" y1="58" x2="125" y2="58" stroke="var(--court-ink)" stroke-dasharray="4 3" opacity=".6"/><rect x="2" y="3" width="126" height="4" rx="2" fill="var(--court-ink)"/>`;
 for(let z=1;z<=6;z++){
 const p=pl(pos[z]);if(!p)continue;
 const cx=5+COLX[z]*40+20,cy=(FRONT.includes(z)?8:58)+20;
-g+=`<path transform="translate(${cx} ${cy}) scale(.5)" d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="var(--${p.sex==="F"?"f":"m"})" stroke="${p.fipav?"#2f9e44":"#fff"}" stroke-width="5" stroke-linejoin="round"/><text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">${tag(p)}</text><text x="${cx}" y="${cy+25}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--court-ink)">${esc(p.name.slice(0,8))}</text>`;
+g+=`<path transform="translate(${cx} ${cy}) scale(.5)" d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="var(--${p.sex==="F"?"f":"m"})" stroke="${p.fipav?"#2f9e44":"#fff"}" stroke-width="5" stroke-linejoin="round"/><text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">${tag(p,c)}</text><text x="${cx}" y="${cy+25}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--court-ink)">${esc(p.name.slice(0,8))}</text>`;
 }
 return`<svg viewBox="0 0 130 112" aria-hidden="true">${g}</svg>`;
 }
 function drawHome(){
 $("#list").innerHTML=S.schemes.map(s=>{
-const pos=s.pos||{},w=problems(pos);
-return`<div class="sc${w.length?" warn":""}" data-id="${s.id}"><button class="op" type="button" data-open="1" aria-label="Apri ${esc(s.name||"schema")}">${miniSvg(pos)}<strong>${esc(s.name||"Senza nome")}</strong><small>${KINDS[s.kind||"ric"]}</small><small class="${w.length?"bad":"good"}">${w.length?esc(w.join(" · ")):"Formazione valida"}</small></button><div class="acts"><button type="button" class="pri" data-open="1">Modifica</button><button type="button" data-dup="1" aria-label="Duplica" title="Duplica">⧉</button><button type="button" class="x" data-del="1" aria-label="Elimina" title="Elimina">✕</button></div></div>`;
+const pos=s.pos||{},w=problems(pos,s);
+return`<div class="sc${w.length?" warn":""}" data-id="${s.id}"><button class="op" type="button" data-open="1" aria-label="Apri ${esc(s.name||"schema")}">${miniSvg(pos,s)}<strong>${esc(s.name||"Senza nome")}</strong><small>${KINDS[s.kind||"ric"]}</small><small class="${w.length?"bad":"good"}">${w.length?esc(w.join(" · ")):"Formazione valida"}</small></button><div class="acts"><button type="button" class="pri" data-open="1">Modifica</button><button type="button" data-dup="1" aria-label="Duplica" title="Duplica">⧉</button><button type="button" class="x" data-del="1" aria-label="Elimina" title="Elimina">✕</button></div></div>`;
 }).join("")||`<p class="hint">Nessuno schema: creane uno con “Nuovo schema”.</p>`;
 }
 function route(){
@@ -243,7 +251,7 @@ render();window.scrollTo(0,0);
 function go(h){if(location.hash===h||(!location.hash&&!h))route();else location.hash=h}
 function dupScheme(id,openIt){
 const o=S.schemes.find(s=>s.id===id);if(!o)return;
-const n={id:uid(),name:(o.name||"Schema")+" copia",kind:o.kind||"ric",pos:{...o.pos},marks:JSON.parse(JSON.stringify(o.marks||{}))};
+const n={id:uid(),name:(o.name||"Schema")+" copia",kind:o.kind||"ric",pos:{...o.pos},marks:JSON.parse(JSON.stringify(o.marks||{})),roles:{...(o.roles||{})}};
 S.schemes.push(n);
 if(openIt)go("#s="+n.id);else render();
 }
@@ -261,9 +269,9 @@ if(!ed){drawHome();save();return}
 S.cur=cur().id;
 $("#sname").value=cur().name;
 $("#skind").innerHTML=Object.keys(KINDS).map(k=>`<option value="${k}"${(cur().kind||"ric")===k?" selected":""}>${KINDS[k]}</option>`).join("");
-$("#rF").value=S.rules.minF;$("#rM").value=S.rules.minM;$("#rX").value=S.rules.maxMF;
+$("#rF").value=S.rules.minF;$("#rM").value=S.rules.minM;$("#rX").value=S.rules.maxMF;$("#rO").checked=S.rules.ord!==false;
 $("#tools").innerHTML=Object.keys(MARKS).map(k=>`<button class="tool ${tool===k?"on":""}" data-m="${k}" aria-pressed="${tool===k}">${MARKS[k].s} ${MARKS[k].n}</button>`).join("")+`<button data-m="clear" class="x" title="Togli tutti i simboli">✕ Pulisci</button>`;
-drawCourt();drawChecks();drawRoster();drawRots();
+drawCourt();drawSRoles();drawChecks();drawRoster();drawRots();
 $("#hint").textContent=sel?(sel.t==="p"?`${esc(pl(sel.id).name)} è scelto: tocca una zona del campo.`:`Zona ${sel.z} scelta: tocca un’altra zona per scambiare.`):(tool?"Simbolo “"+MARKS[tool].n+"” attivo: tocca un giocatore in campo per metterlo o toglierlo. Tocca di nuovo il pulsante per smettere.":"Trascina i giocatori dall’elenco sul campo, oppure da una zona all’altra per spostarli o scambiarli.");
 save();
 }
@@ -281,9 +289,9 @@ g+=`<g class="zone${p?" has":""}" data-z="${z}" role="button" tabindex="0" aria-
 <rect x="${x}" y="${y}" width="120" height="170" fill="${on?"rgba(255,255,255,.3)":"rgba(255,255,255,.06)"}" stroke="var(--court-ink)" stroke-width="${on?4:1.5}" stroke-opacity="${on?1:.55}"/>
 <text x="${x+8}" y="${y+20}" font-size="15" fill="var(--court-ink)" opacity=".6" font-family="Barlow Condensed,sans-serif" font-weight="700">${z}</text>`;
 if(p){g+=`<g class="pp"><path transform="translate(${cx} ${cy})" d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="var(--${p.sex==="F"?"f":"m"})" stroke="${p.fipav?"#2f9e44":"#fff"}" stroke-width="3" stroke-linejoin="round"/>
-<text x="${cx}" y="${cy+8}" text-anchor="middle" font-size="24" font-weight="700" fill="#fff" font-family="Barlow Condensed,sans-serif">${tag(p)}</text>
+<text x="${cx}" y="${cy+8}" text-anchor="middle" font-size="24" font-weight="700" fill="#fff" font-family="Barlow Condensed,sans-serif">${tag(p,c)}</text>
 <text x="${cx}" y="${cy+50}" text-anchor="middle" font-size="15" font-weight="600" fill="var(--court-ink)">${esc(p.name.slice(0,12))}</text>
-<text x="${cx}" y="${cy+67}" text-anchor="middle" font-size="12" fill="var(--court-ink)" opacity=".75">${ROLES[p.role]} · ${avg(p)}</text>${badges(c,p.id,cx,cy)}</g>`}
+<text x="${cx}" y="${cy+67}" text-anchor="middle" font-size="12" fill="var(--court-ink)" opacity=".75">${ROLES[eff(p,c)]} · ${avg(p)}</text>${badges(c,p.id,cx,cy)}</g>`}
 else g+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="13" fill="var(--court-ink)" opacity=".5">libero</text>`;
 g+=`</g>`;
 }
@@ -293,28 +301,37 @@ $("#court").innerHTML=`<svg viewBox="0 0 400 392" role="img" aria-label="Campo v
 <defs><pattern id="mesh" width="8" height="6" patternUnits="userSpaceOnUse"><path d="M0 0H8M0 0V6" stroke="#fff" stroke-opacity=".65" stroke-width=".8" fill="none"/></pattern></defs><rect x="14" y="28" width="372" height="12" fill="url(#mesh)" stroke="#fff" stroke-width="2"/><line x1="14" y1="40" x2="14" y2="12" stroke="#fff" stroke-width="3" stroke-linecap="round"/><line x1="386" y1="40" x2="386" y2="12" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
 <text x="200" y="24" text-anchor="middle" font-size="13" fill="var(--court-ink)" font-weight="600">Rete</text>${ln}${g}</svg>`;
 }
-function problems(pos){
+function roleChk(pos,c){
+if(S.rules.ord===false)return null;
+const g=r=>r==="L"?"C":r,a=[];
+for(const z of CIRC){const p=pl(pos[z]);if(!p)return null;a.push(g(eff(p,c)))}
+const n=k=>a.filter(x=>x===k).length;
+if(n("P")!==1||n("OP")!==1||n("B")!==2||n("C")!==2)return{k:"cnt",t:`${n("P")} P, ${n("OP")} OP, ${n("B")} B, ${n("C")} C`};
+for(let i=0;i<3;i++){const x=a[i],y=a[i+3];const ok=x===y?(x==="B"||x==="C"):((x==="P"&&y==="OP")||(x==="OP"&&y==="P"));if(!ok)return{k:"ord"}}
+return null}
+function problems(pos,c){
 const on=[1,2,3,4,5,6].map(z=>pl(pos[z])).filter(Boolean);
 const f=on.filter(p=>p.sex==="F").length,m=on.length-f,R=S.rules,w=[];
 const mf=FRONT.filter(z=>{const p=pl(pos[z]);return p&&p.sex==="M"}).length;
-const lf=FRONT.some(z=>{const p=pl(pos[z]);return p&&p.role==="L"});
+const lf=FRONT.some(z=>{const p=pl(pos[z]);return p&&eff(p,c)==="L"});
 if(on.length<6)w.push("Mancano giocatori");
 if(f<R.minF)w.push(`Donne ${f} su ${R.minF}`);
 if(m<R.minM)w.push(`Uomini ${m} su ${R.minM}`);
 if(mf>R.maxMF)w.push(`${mf} uomini in prima linea`);
 if(lf)w.push("Libero davanti");
 if(on.filter(p=>p.fipav).length>1)w.push("2 FIPAV in campo");
+const rc=roleChk(pos,c);if(rc)w.push(rc.k==="cnt"?"Ruoli non corretti":"Ordine ruoli errato");
 return w;
 }
 function drawRots(){
-let pos=cur().pos,h="";
+const c=cur();let pos=c.pos,h="";
 for(let k=0;k<6;k++){
-const w=problems(pos);
+const w=problems(pos,c);
 let g=`<rect x="5" y="8" width="120" height="100" fill="var(--wood)" stroke="var(--court-ink)" stroke-width="1.5"/><line x1="5" y1="58" x2="125" y2="58" stroke="var(--court-ink)" stroke-dasharray="4 3" opacity=".6"/><rect x="2" y="3" width="126" height="4" rx="2" fill="var(--court-ink)"/>`;
 for(let z=1;z<=6;z++){
 const p=pl(pos[z]);if(!p)continue;
 const cx=5+COLX[z]*40+20,cy=(FRONT.includes(z)?8:58)+20;
-g+=`<path transform="translate(${cx} ${cy}) scale(.5)" d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="var(--${p.sex==="F"?"f":"m"})" stroke="${p.fipav?"#2f9e44":"#fff"}" stroke-width="5" stroke-linejoin="round"/><text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">${tag(p)}</text><text x="${cx}" y="${cy+25}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--court-ink)">${esc(p.name.slice(0,8))}</text>`;
+g+=`<path transform="translate(${cx} ${cy}) scale(.5)" d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="var(--${p.sex==="F"?"f":"m"})" stroke="${p.fipav?"#2f9e44":"#fff"}" stroke-width="5" stroke-linejoin="round"/><text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">${tag(p,c)}</text><text x="${cx}" y="${cy+25}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--court-ink)">${esc(p.name.slice(0,8))}</text>`;
 }
 h+=`<div class="rc ${k===0?"now":""} ${w.length?"warn":""}" data-k="${k}" role="button" tabindex="0"><svg viewBox="0 0 130 112" role="img" aria-label="Rotazione ${k}">${g}</svg><strong>${k===0?"Schema attuale":"Dopo "+k+(k===1?" rotazione":" rotazioni")}</strong><small class="${w.length?"bad":"good"}">${w.length?w.join(" · "):"Formazione valida"}</small></div>`;
 pos=ROT(pos);
@@ -325,13 +342,15 @@ function drawChecks(){
 const c=cur(),on=[1,2,3,4,5,6].map(z=>pl(c.pos[z])).filter(Boolean);
 const f=on.filter(p=>p.sex==="F").length,m=on.length-f;
 const mf=FRONT.filter(z=>{const p=pl(c.pos[z]);return p&&p.sex==="M"}).length;
-const lf=FRONT.some(z=>{const p=pl(c.pos[z]);return p&&p.role==="L"});
+const lf=FRONT.some(z=>{const p=pl(c.pos[z]);return p&&eff(p,c)==="L"});
 const w=[],R=S.rules;
 if(on.length<6)w.push(`In campo ci sono ${on.length} giocatori su 6.`);
 if(f<R.minF)w.push(`Servono almeno ${R.minF} donne in campo (ora ${f}).`);
 if(m<R.minM)w.push(`Servono almeno ${R.minM} uomini in campo (ora ${m}).`);
 if(mf>R.maxMF)w.push(`Troppi uomini in prima linea: ${mf} (massimo ${R.maxMF}).`);
 if(lf)w.push("Il libero non può stare in prima linea.");
+const rc=roleChk(c.pos,c);
+if(rc)w.push(rc.k==="cnt"?`Ruoli in campo: ${rc.t} (servono 1 P, 1 OP, 2 B, 2 C).`:"Ordine dei ruoli errato: palleggiatore e opposto devono stare in zone opposte (diagonale), così come le due bande e i due centrali.");
 const fp=on.filter(p=>p.fipav).length;
 if(fp>1)w.push(`Troppi tesserati FIPAV serie D / 1ª div in campo: ${fp} (massimo 1).`);
 const ab=on.filter(p=>p.pres===false);
@@ -345,16 +364,22 @@ if(dn.length)w.push(`Numeri di maglia ripetuti: ${dn.join(", ")}.`);
 $("#court").classList.toggle("bad",w.length>0);
 $("#checks").innerHTML=w.length?w.map(t=>`<li>${esc(t)}</li>`).join(""):`<li class="ok">Formazione valida: ${f} donne e ${m} uomini, ${mf} uomini in prima linea.</li>`;
 }
+function drawSRoles(){
+const c=cur();
+const it=[4,3,2,5,6,1].map(z=>{const p=pl(c.pos[z]);if(!p)return"";const cr=eff(p,c);return`<label><span><b>Z${z}</b> ${esc(p.name.slice(0,14))}</span><select data-sr="${p.id}" aria-label="Ruolo di ${esc(p.name)} in questo schema">${roleList(p).map(r=>`<option value="${r}"${cr===r?" selected":""}>${ROLES[r]}</option>`).join("")}</select></label>`}).join("");
+$("#sroles").innerHTML=it?`<p class="hint">Ruolo di ogni giocatore in questo schema (ognuno usa uno dei suoi tre ruoli):</p><div class="sr">${it}</div>`:"";
+}
 let onlyOn=false;
 function drawRoster(){
 $("#roster").innerHTML=[...S.players].filter(p=>!onlyOn||p.pres!==false).sort((a,b)=>{const k=p=>{const z=zoneOf(p.id);return z?z:(p.pres===false?9:7)};return k(a)-k(b)}).map(p=>{
 const z=zoneOf(p.id),on=sel&&sel.t==="p"&&sel.id===p.id;
+const rs=[["role","1° ruolo",0],["ro2","2° ruolo",1],["ro3","3° ruolo",1]].map(([k,l,b])=>`<label class="rt">${l}<select data-k="${k}" aria-label="${l}" style="width:100%">${b?`<option value="">—</option>`:""}${Object.keys(ROLES).map(r=>`<option value="${r}"${p[k]===r?" selected":""}>${ROLES[r]}</option>`).join("")}</select></label>`).join("");
 const rt=["Att","Ric","Dif","Bat"].map((l,i)=>`<label class="rt">${l}<input type="number" min="1" max="5" data-r="${i}" value="${p.r[i]}"></label>`).join("");
 return`<div class="pl ${on?"sel":""} ${open===p.id?"open":""} ${p.pres===false?"off":"call"}" data-id="${p.id}">
-<div class="row"><span class="dot grip ${p.sex==="F"?"f":"m"}${p.fipav?" fp":""}" data-grip="1" title="Trascina sul campo" aria-label="Trascina sul campo">${tag(p)}</span><span class="name nm"><b>${esc(p.name)}</b><small class="rl">${p.num?"n° "+esc(p.num)+" · ":""}${ROLES[p.role]}</small></span>
+<div class="row"><span class="dot grip ${p.sex==="F"?"f":"m"}${p.fipav?" fp":""}" data-grip="1" title="Trascina sul campo" aria-label="Trascina sul campo">${tag(p,cur())}</span><span class="name nm"><b>${esc(p.name)}</b><small class="rl">${p.num?"n° "+esc(p.num)+" · ":""}${roleList(p).join(" / ")}</small></span>
 <label class="pr" title="Convocato"><input type="checkbox" data-k="pres"${p.pres===false?"":" checked"} aria-label="Convocato"></label><small class="st">${p.fipav?"FIPAV · ":""}${p.pres===false?"Non convocato":(z?"Zona "+z:"Panchina")}</small><button class="tg" data-tg="1" aria-label="Mostra o nascondi i dettagli">▾</button><button class="x" data-del="1" aria-label="Elimina giocatore">Elimina</button></div>
 <div class="row"><input class="name" data-k="name" value="${esc(p.name)}" placeholder="Nome" aria-label="Modifica nome"><select data-k="sex" aria-label="Sesso"><option value="F"${p.sex==="F"?" selected":""}>Donna</option><option value="M"${p.sex==="M"?" selected":""}>Uomo</option></select>
-<select data-k="role" aria-label="Ruolo">${Object.keys(ROLES).map(r=>`<option value="${r}"${p.role===r?" selected":""}>${ROLES[r]}</option>`).join("")}</select>${rt}</div>
+</div><div class="row">${rs}</div><div class="row">${rt}</div>
 <div class="row"><label class="rt">N° maglia<input type="number" min="0" max="99" data-k="num" value="${esc(p.num||"")}" aria-label="Numero di maglia"></label><label class="rt" style="flex:1 1 140px">N° matricola tesserato<input type="text" inputmode="numeric" data-k="mat" style="width:100%" value="${esc(p.mat||"")}" aria-label="Numero di matricola del tesserato"></label></div>
 <div class="row"><label class="ck"><input type="checkbox" data-k="fipav"${p.fipav?" checked":""}> Tesserato FIPAV serie D / 1ª div</label></div>
 <div class="row"><button class="pick" data-pick="1">${z?`In campo, zona ${z}`:"In panchina"} · ${on?"scelto, tocca una zona":"tocca per scegliere"}</button><span class="avg">Media ${avg(p)}</span></div></div>`}).join("")||`<p class="hint">${onlyOn?"Nessun giocatore convocato.":"Nessun giocatore: aggiungi il primo."}</p>`;
@@ -425,7 +450,7 @@ $("#rot").addEventListener("click",()=>{cur().pos=ROT(cur().pos);sel=null;render
 $("#rotb").addEventListener("click",()=>{cur().pos=ROTB(cur().pos);sel=null;render()});
 $("#dup").addEventListener("click",()=>dupScheme(S.cur,true));
 $("#del").addEventListener("click",()=>delScheme(S.cur));
-$("#add").addEventListener("click",()=>{const n={id:uid(),name:"Nuovo giocatore",sex:"F",role:"S",r:[3,3,3,3],num:"",mat:""};S.players.push(n);open=n.id;render()});
+$("#add").addEventListener("click",()=>{const n={id:uid(),name:"Nuovo giocatore",sex:"F",role:"B",r:[3,3,3,3],ro2:"",ro3:"",num:"",mat:""};S.players.push(n);open=n.id;render()});
 $("#roster").addEventListener("click",e=>{
 const card=e.target.closest(".pl");if(!card)return;const id=card.dataset.id;
 if(e.target.closest("[data-tg]")||(e.target.closest(".row")===card.firstElementChild&&!e.target.closest("[data-grip],[data-del],.pr"))){open=open===id?null:id;render();return}
@@ -456,6 +481,7 @@ h.addEventListener("pointermove",mv);h.addEventListener("pointerup",end);h.addEv
 $("#roster").addEventListener("change",e=>{
 const card=e.target.closest(".pl");if(!card)return;const p=pl(card.dataset.id),k=e.target.dataset.k;
 if(k)p[k]=e.target.type==="checkbox"?e.target.checked:(k==="num"||k==="mat")?e.target.value.trim():e.target.value;
+if(k==="role"||k==="ro2"||k==="ro3")S.schemes.forEach(s=>{if(s.roles&&s.roles[p.id]&&!roleList(p).includes(s.roles[p.id]))delete s.roles[p.id]});
 if(k==="pres"&&!p.pres)S.schemes.forEach(s=>{for(const z in s.pos)if(s.pos[z]===p.id)s.pos[z]=null});
 else if(e.target.dataset.r!==undefined){p.r[+e.target.dataset.r]=Math.min(5,Math.max(1,+e.target.value||1))}
 if(k==="num"||k==="mat")open=p.id;
@@ -464,7 +490,9 @@ render();
 $("#allOn").addEventListener("click",()=>{S.players.forEach(p=>p.pres=true);render()});
 $("#allOff").addEventListener("click",()=>{S.players.forEach(p=>p.pres=false);S.schemes.forEach(s=>{for(const z in s.pos)s.pos[z]=null});render()});
 $("#onlyOn").addEventListener("change",e=>{onlyOn=e.target.checked;render()});
-$("#rLib").addEventListener("click",()=>{S.rules={minF:2,minM:2,maxMF:2,v:2};render()});
+$("#rLib").addEventListener("click",()=>{S.rules={minF:2,minM:2,maxMF:2,v:2,ord:true};render()});
+$("#rO").addEventListener("change",e=>{S.rules.ord=e.target.checked;render()});
+$("#sroles").addEventListener("change",e=>{const id=e.target.dataset.sr;if(!id)return;const c=cur(),p=pl(id);c.roles=c.roles||{};if(e.target.value===p.role)delete c.roles[id];else c.roles[id]=e.target.value;render()});
 [["rF","minF"],["rM","minM"],["rX","maxMF"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{S.rules[k]=Math.max(0,+e.target.value||0);render()}));
 const REPO=(()=>{const m=location.hostname.match(/^([^.]+)\.github\.io$/),r=location.pathname.split("/")[1];return m&&r?{o:m[1],r:r}:null})();
 const API=REPO?"https://api.github.com/repos/"+REPO.o+"/"+REPO.r+"/contents/volley-data.json":null;
@@ -491,7 +519,7 @@ const r=await fetch(API,{method:"PUT",headers:hd(1),body:JSON.stringify(b),keepa
 if(!r.ok)throw r.status;
 const j=await r.json();sha=j.content.sha;
 }
-function adopt(o){S=o;if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};if(!S.schemes.some(x=>x.id===S.cur))S.cur=(S.schemes[0]||{}).id;lastJ=snap();route()}
+function adopt(o){S=mig(o);if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};if(!S.schemes.some(x=>x.id===S.cur))S.cur=(S.schemes[0]||{}).id;lastJ=snap();route()}
 async function sync(){
 if(!API)return;
 if(busy){again=true;return}
