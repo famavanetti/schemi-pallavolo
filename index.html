@@ -181,6 +181,7 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 <div class="bar"><button id="allOn" type="button">Convoca tutti</button><button id="allOff" type="button">Nessuno</button><label class="ck"><input type="checkbox" id="onlyOn"> Solo convocati</label></div>
 <div id="roster"></div>
 </section>
+<section class="card" id="wa" hidden></section>
 <section class="card">
 <h2>Le 6 rotazioni</h2>
 <p class="hint" style="margin:2px 0 12px">Ogni riquadro mostra la formazione dopo un certo numero di rotazioni e se rispetta le regole. Tocca un riquadro per portarlo in campo.</p>
@@ -271,7 +272,7 @@ $("#sname").value=cur().name;
 $("#skind").innerHTML=Object.keys(KINDS).map(k=>`<option value="${k}"${(cur().kind||"ric")===k?" selected":""}>${KINDS[k]}</option>`).join("");
 $("#rF").value=S.rules.minF;$("#rM").value=S.rules.minM;$("#rX").value=S.rules.maxMF;$("#rO").checked=S.rules.ord!==false;
 $("#tools").innerHTML=Object.keys(MARKS).map(k=>`<button class="tool ${tool===k?"on":""}" data-m="${k}" aria-pressed="${tool===k}">${MARKS[k].s} ${MARKS[k].n}</button>`).join("")+`<button data-m="clear" class="x" title="Togli tutti i simboli">✕ Pulisci</button>`;
-drawCourt();drawSRoles();drawChecks();drawRoster();drawRots();
+drawCourt();drawSRoles();drawChecks();drawRoster();drawRots();drawWA();
 $("#hint").textContent=sel?(sel.t==="p"?`${esc(pl(sel.id).name)} è scelto: tocca una zona del campo.`:`Zona ${sel.z} scelta: tocca un’altra zona per scambiare.`):(tool?"Simbolo “"+MARKS[tool].n+"” attivo: tocca un giocatore in campo per metterlo o toglierlo. Tocca di nuovo il pulsante per smettere.":"Trascina i giocatori dall’elenco sul campo, oppure da una zona all’altra per spostarli o scambiarli.");
 save();
 }
@@ -369,6 +370,41 @@ const c=cur();
 const it=[4,3,2,5,6,1].map(z=>{const p=pl(c.pos[z]);if(!p)return"";const cr=eff(p,c);return`<label><span><b>Z${z}</b> ${esc(p.name.slice(0,14))}</span><select data-sr="${p.id}" aria-label="Ruolo di ${esc(p.name)} in questo schema">${roleList(p).map(r=>`<option value="${r}"${cr===r?" selected":""}>${ROLES[r]}</option>`).join("")}</select></label>`}).join("");
 $("#sroles").innerHTML=it?`<p class="hint">Ruolo di ogni giocatore in questo schema (ognuno usa uno dei suoi tre ruoli):</p><div class="sr">${it}</div><button type="button" id="autoRoles" style="margin-top:8px">⚙ Assegna ruoli in automatico</button>`:"";
 }
+/* ---- Invio su WhatsApp ----
+   Chi può vedere la funzione: aggiungi qui i ruoli (es. "gestore" quando sarà pronto). */
+const WA_RUOLI=["admin"];
+const waOk=()=>WA_RUOLI.includes(window.volleyRole);
+const waSt={head:"",conv:true,sch:null};
+function waConvocati(){
+const n=p=>parseInt(p.num,10);
+return S.players.filter(p=>p.pres!==false).sort((a,b)=>(isNaN(n(a))?999:n(a))-(isNaN(n(b))?999:n(b))||a.name.localeCompare(b.name));
+}
+function waScheme(s){
+const L=zs=>zs.map(z=>{const p=pl((s.pos||{})[z]);if(!p)return`Z${z} —`;const m=((s.marks||{})[p.id]||[]).map(k=>MARKS[k].s).join("");return`Z${z} ${p.num?p.num+" ":""}${p.name} (${eff(p,s)})${m?" "+m:""}`}).join(" · ");
+return`*Schema ${s.name||"senza nome"}* (${KINDS[s.kind||"ric"]})\nDavanti: ${L([4,3,2])}\nDietro: ${L([5,6,1])}`;
+}
+function waText(){
+const parts=[];
+if(waSt.head.trim())parts.push("*"+waSt.head.trim()+"*");
+if(waSt.conv){const c=waConvocati();parts.push(`*Convocati (${c.length})*\n`+(c.map(p=>`${p.num?p.num+" – ":""}${p.name}`).join("\n")||"—"))}
+S.schemes.filter(s=>waSt.sch.has(s.id)).forEach(s=>parts.push(waScheme(s)));
+return parts.join("\n\n");
+}
+function drawWA(){
+const box=$("#wa");
+if(!waOk()){box.hidden=true;return}
+box.hidden=false;
+if(!waSt.sch)waSt.sch=new Set([S.cur]);
+waSt.sch=new Set([...waSt.sch].filter(id=>S.schemes.some(s=>s.id===id)));
+box.innerHTML=`<h2>Invia su WhatsApp</h2>
+<p class="hint" style="margin:2px 0 10px">Scegli cosa inviare, controlla il testo (puoi modificarlo) e premi Invia: si apre WhatsApp e scegli tu la chat o il gruppo.</p>
+<div class="bar"><input id="waHead" placeholder="Titolo (es. Partita sabato 31/10 ore 21, palestra…)" value="${esc(waSt.head)}" aria-label="Titolo del messaggio"></div>
+<label class="ck" style="margin-bottom:6px"><input type="checkbox" id="waConv"${waSt.conv?" checked":""}> Elenco convocati (${waConvocati().length})</label>
+${S.schemes.map(s=>`<label class="ck" style="margin-bottom:6px"><input type="checkbox" data-ws="${s.id}"${waSt.sch.has(s.id)?" checked":""}> Schema: ${esc(s.name||"Senza nome")} <span class="st">${KINDS[s.kind||"ric"]}</span></label>`).join("")}
+<textarea id="waTxt" rows="11" aria-label="Anteprima del messaggio">${esc(waText())}</textarea>
+<div class="bar" style="margin-top:8px"><button type="button" id="waSend" class="primary">Invia su WhatsApp</button><button type="button" id="waCopy">Copia testo</button><span class="st" id="waMsg" role="status" style="white-space:normal;align-self:center"></span></div>`;
+}
+const waPrev=()=>{$("#waTxt").value=waText()};
 function autoRoles(){
 const c=cur(),ps=CIRC.map(z=>pl(c.pos[z]));
 if(ps.some(p=>!p)){alert("Metti in campo tutti e 6 i giocatori prima di assegnare i ruoli.");return}
@@ -506,6 +542,24 @@ $("#onlyOn").addEventListener("change",e=>{onlyOn=e.target.checked;render()});
 $("#rLib").addEventListener("click",()=>{S.rules={minF:2,minM:2,maxMF:2,v:2,ord:true};render()});
 $("#rO").addEventListener("change",e=>{S.rules.ord=e.target.checked;render()});
 $("#sroles").addEventListener("click",e=>{if(e.target.closest("#autoRoles"))autoRoles()});
+$("#wa").addEventListener("input",e=>{if(e.target.id==="waHead"){waSt.head=e.target.value;waPrev()}});
+$("#wa").addEventListener("change",e=>{
+if(e.target.id==="waConv"){waSt.conv=e.target.checked;waPrev()}
+else if(e.target.dataset.ws){const id=e.target.dataset.ws;if(e.target.checked)waSt.sch.add(id);else waSt.sch.delete(id);waPrev()}
+});
+$("#wa").addEventListener("click",e=>{
+const msg=t=>{$("#waMsg").textContent=t};
+if(e.target.closest("#waSend")){
+const t=$("#waTxt").value.trim();
+if(!t){msg("Niente da inviare: seleziona almeno un elemento.");return}
+if(t.length>3500)msg("Messaggio lungo: se WhatsApp non lo accetta, usa “Copia testo”.");
+window.open("https://wa.me/?text="+encodeURIComponent(t),"_blank","noopener");
+}else if(e.target.closest("#waCopy")){
+const ta=$("#waTxt"),t=ta.value;
+const fb=()=>{ta.select();try{document.execCommand("copy");msg("Testo copiato ✓")}catch(x){msg("Copia non riuscita: seleziona il testo e copialo a mano.")}};
+if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(()=>msg("Testo copiato ✓"),fb);else fb();
+}
+});
 $("#sroles").addEventListener("change",e=>{const id=e.target.dataset.sr;if(!id)return;const c=cur(),p=pl(id);c.roles=c.roles||{};if(e.target.value===p.role)delete c.roles[id];else c.roles[id]=e.target.value;render()});
 [["rF","minF"],["rM","minM"],["rX","maxMF"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{S.rules[k]=Math.max(0,+e.target.value||0);render()}));
 const REPO=(()=>{const m=location.hostname.match(/^([^.]+)\.github\.io$/),r=location.pathname.split("/")[1];return m&&r?{o:m[1],r:r}:null})();
