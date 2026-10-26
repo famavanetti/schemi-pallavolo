@@ -128,6 +128,7 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 .nav{display:flex;align-items:center;gap:6px;margin-bottom:10px}
 .nav .sp{flex:1}
 .nav .menu>button{height:auto;padding:6px 14px}
+.cls{display:inline-block;flex:none;white-space:nowrap;font:inherit;font-weight:600;text-decoration:none;color:#fff;background:#7048e8;border:1px solid #7048e8;border-radius:8px;padding:6px 11px}.cls:hover{background:#5f3dc4;border-color:#5f3dc4}.cls:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
 .grip.fp{box-shadow:0 0 0 2px #2f9e44}
 .tg{padding:2px 9px;transition:transform .15s}.pl.open .tg{transform:rotate(180deg)}
 .tool.on{background:var(--sel);color:#fff;border-color:var(--sel)}
@@ -153,7 +154,7 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 <div id="editor" hidden>
 <div class="grid">
 <section class="card">
-<div class="nav"><button id="back" type="button">← Schemi</button><a class="cls" href="classifica.html">🏆 Classifica</a><span class="sp"></span>
+<div class="nav"><button id="back" type="button">← Schemi</button><span class="sp"></span><a class="cls" href="classifica.html">🏆 Classifica</a><span class="sp"></span>
 <div class="menu"><button id="more" type="button" aria-label="Altre azioni" aria-haspopup="true" aria-expanded="false">⋯</button>
 <div class="pop" id="pop" hidden><button id="dup" type="button">⧉ Duplica schema</button><button id="del" type="button" class="x">✕ Elimina schema</button></div></div></div>
 <div class="bar top">
@@ -630,6 +631,18 @@ if(!API)$("#syncbar").style.display="none";
 if(RO)$("#syncKey").style.display="none";
 /* "Collega salvataggio" solo per l'amministratore (chi ha già il token, vedi access.js) */
 if(window.volleyRole==="admin")$("#syncKey").hidden=false;
+/* Pulsante Classifica: sempre a metà tra "← Schemi" e "Lavagna" (il pulsante Lavagna lo aggiunge lavagna.js) */
+function placeCls(){
+const nav=$(".nav"),cls=nav&&nav.querySelector(".cls"),back=$("#back"),menu=nav&&nav.querySelector(".menu"),sps=nav?nav.querySelectorAll(".sp"):[];
+if(!cls||!menu||sps.length<2)return;
+const lav=[...nav.querySelectorAll("button,a")].find(b=>b!==back&&b!==cls&&!menu.contains(b)&&/Lavagna/i.test(b.textContent));
+if(!lav)return;
+const want=[back,sps[0],cls,sps[1],lav,menu],now=[...nav.children].slice(-want.length);
+if(want.every((e,i)=>now[i]===e))return;
+want.forEach(e=>nav.appendChild(e));
+}
+new MutationObserver(placeCls).observe($(".nav"),{childList:true});
+window.addEventListener("load",placeCls);
 window.addEventListener("hashchange",route);
 route();
 sync();
