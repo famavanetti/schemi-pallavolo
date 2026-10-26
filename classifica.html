@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Risultati e classifica</title>
+<script src="access.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{--bg:#eef1f4;--surface:#fff;--ink:#15202b;--muted:#5b6b7a;--line:#d5dce3;--sel:#f08c00;--ok:#2b8a3e;--warn:#c92a2a;--own:#fff3d6;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10151b;--surface:#19212a;--ink:#e8edf2;--muted:#9aa8b6;--line:#2b3641;--ok:#69db7c;--warn:#ff8787;--own:#3a2f14;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10151b;--surface:#19212a;--ink:#e8edf2;--muted:#9aa8b6;--line:#2b3641;--ok:#69db7c;--warn:#ff8787;--own:#3a2f14;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 "Barlow",system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;font-weight:700;margin:0;letter-spacing:.2px}
+h1{font-size:30px}h2{font-size:21px}
+.wrap{max-width:1040px;margin:0 auto;padding:16px}
+.sub{margin:2px 0 14px;color:var(--muted)}
+.grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);align-items:start}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
+select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0;max-width:100%}
+.bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.bar .sp{flex:1}
+a.back{display:inline-block;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:6px 11px;background:var(--surface)}
+.st{color:var(--muted);font-size:13px}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:22px 14px;text-align:center;color:var(--muted)}
+.drop.over{border-color:var(--sel);color:var(--ink)}
+.hint{color:var(--muted);font-size:14px;margin:8px 0 0}
+.mt{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;padding:9px 10px;border-radius:8px;border:1px solid var(--line);margin-bottom:6px;align-items:center}
+.mt.own{background:var(--own)}
+.mt .d{grid-column:1;grid-row:1/3;font-size:13px;color:var(--muted);text-align:center;min-width:64px;line-height:1.25}
+.mt .d b{display:block;font:700 18px "Barlow Condensed",system-ui,sans-serif;color:var(--ink)}
+.mt .t{grid-column:2;grid-row:1;min-width:0}
+.mt .t span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mt .t .w{font-weight:700}
+.mt .s{grid-column:2;grid-row:2;font-size:12px;color:var(--muted)}
+.mt .r{grid-column:3;grid-row:1/3;text-align:center;font:700 22px "Barlow Condensed",system-ui,sans-serif;min-width:56px}
+.mt .r i{display:block;font:600 11px "Barlow",system-ui,sans-serif;font-style:normal;margin-top:1px}
+.win{color:var(--ok)}.lose{color:var(--warn)}
+.mt.next{box-shadow:0 0 0 2px var(--sel)}
+.sec{font:700 17px "Barlow Condensed",system-ui,sans-serif;margin:14px 0 6px}
+.sec:first-of-type{margin-top:0}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:13px}
+th:nth-child(2),td:nth-child(2){text-align:left}
+th:first-child,td:first-child{text-align:center;color:var(--muted)}
+td:nth-child(3){font-weight:700}
+tr.own td{background:var(--own);font-weight:600}
+td:nth-child(2){max-width:190px;overflow:hidden;text-overflow:ellipsis}
+.x{color:var(--warn)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="bar"><a class="back" href="./">← Schemi</a><span class="sp"></span><span class="st" id="syncMsg" role="status"></span><button id="syncBtn" type="button">⟳ Sincronizza</button></div>
+<h1 id="ttl">Risultati e classifica</h1>
+<p class="sub" id="sub">Importa il PDF “Risultati e classifica” generato da PowerSPORT.</p>
+</header>
+
+<section class="card" id="imp">
+<div class="drop" id="drop">
+<p style="margin:0 0 10px">Trascina qui il PDF del campionato oppure scegli il file.</p>
+<button type="button" class="primary" id="pick">Scegli PDF</button>
+<input type="file" id="file" accept="application/pdf,.pdf" hidden>
+<p class="hint" id="impMsg" role="status"></p>
+</div>
+</section>
+
+<div id="main" hidden style="margin-top:16px">
+<div class="bar"><select id="sel" aria-label="Campionato"></select><span class="st" id="meta"></span><span class="sp"></span><button id="del" type="button" class="x">✕ Elimina</button></div>
+<div class="grid">
+<section class="card"><h2 style="margin-bottom:10px">Partite</h2><div id="matches"></div></section>
+<section class="card"><h2 style="margin-bottom:10px" id="ctitle">Classifica</h2><div class="tw"><table id="tbl"></table></div></section>
+</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const KEY="volley-risultati";
+const RO=matchMedia("(pointer:coarse)").matches;
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY));if(o&&Array.isArray(o.list))return o}catch(e){}return{list:[],cur:null,updated:0}}
+let D=load();
+function save(touch){if(touch)D.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}if(touch&&tok())sync()}
+
+/* ---------- Lettura del PDF ---------- */
+let workerReady=null;
+function initPdf(){
+if(!workerReady)workerReady=fetch("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js").then(r=>r.text()).then(t=>{pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([t],{type:"text/javascript"}))});
+return workerReady;
+}
+async function pdfLines(buf){
+await initPdf();
+const doc=await pdfjsLib.getDocument({data:buf}).promise,out=[];
+for(let n=1;n<=doc.numPages;n++){
+const tc=await(await doc.getPage(n)).getTextContent(),rows=[];
+tc.items.forEach(i=>{const s=i.str.trim();if(!s)return;const y=i.transform[5],x=i.transform[4];let r=rows.find(r=>Math.abs(r.y-y)<3);if(!r){r={y,c:[]};rows.push(r)}r.c.push({x,s})});
+rows.sort((a,b)=>b.y-a.y).forEach(r=>out.push(r.c.sort((a,b)=>a.x-b.x).map(c=>c.s).join(" ").replace(/\s+/g," ").trim()));
+}
+return out.filter(Boolean);
+}
+const isNum=x=>/^(-?\d+([.,]\d+)?|--)$/.test(x);
+function splitTeams(txt,names){
+for(const a of names)if(txt.startsWith(a+" ")){const r=txt.slice(a.length+1).trim();if(names.includes(r))return[a,r]}
+for(const a of names)if(txt.startsWith(a+" "))return[a,txt.slice(a.length+1).trim()];
+const w=txt.split(" "),h=Math.ceil(w.length/2);return[w.slice(0,h).join(" "),w.slice(h).join(" ")];
+}
+function parse(lines){
+const title=lines[0]||"",sub=lines[1]||"",table=[],raw=[];
+for(const l of lines){
+const t=l.split(" ");
+if(/\d{2}\/\d{2}\/\d{4}/.test(l)){
+const m=l.match(/^(\d+)\s+(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2})[.:](\d{2})\s+(.*)$/);
+if(m)raw.push({g:+m[1],d:`${m[4]}-${m[3]}-${m[2]}`,t:`${m[5].padStart(2,"0")}:${m[6]}`,rest:m[7]});
+}else if(/^\d+$/.test(t[0])&&t.length>=13&&t.slice(-11).every(isNum))table.push({pos:+t[0],team:t.slice(1,-11).join(" "),v:t.slice(-11)});
+}
+if(!table.length&&!raw.length)throw new Error("vuoto");
+const names=table.map(r=>r.team);
+const matches=raw.map(r=>{
+let txt=r.rest,res=null,sets=[];
+const m=txt.match(/\s(\d+)\s-\s(\d+)((?:\s\d+-\d+)*)\s*$/);
+if(m){res=[+m[1],+m[2]];sets=m[3].trim()?m[3].trim().split(" "):[];txt=txt.slice(0,m.index)}
+else txt=txt.replace(/\s*da disputare\s*$/i,"");
+const[home,away]=splitTeams(txt.trim(),names);
+return{g:r.g,d:r.d,t:r.t,home,away,res,sets};
+}).sort((a,b)=>(a.d+a.t).localeCompare(b.d+b.t));
+const guess=title.replace(/^\S+\s+/,"").trim();
+let team=names.find(n=>n.toUpperCase()===guess.toUpperCase())||guess;
+const gm=lines.join(" ").match(/CLASSIFICA ALLA (\d+)/i);
+return{id:(title+"|"+sub).toLowerCase(),title,sub,team,giornata:gm?+gm[1]:null,matches,table,imp:Date.now()};
+}
+async function importFile(f){
+const msg=t=>$("#impMsg").textContent=t;
+if(!f)return;
+msg("Lettura del PDF…");
+try{
+const c=parse(await pdfLines(await f.arrayBuffer()));
+const i=D.list.findIndex(x=>x.id===c.id);
+if(i>=0)D.list[i]=c;else D.list.push(c);
+D.cur=c.id;save(true);render();
+msg(`Importato: ${c.matches.length} partite, ${c.table.length} squadre ✓`);
+}catch(e){msg("Non riesco a leggere questo PDF: serve il file “Risultati e classifica” di PowerSPORT.")}
+}
+$("#pick").addEventListener("click",()=>$("#file").click());
+$("#file").addEventListener("change",e=>{importFile(e.target.files[0]);e.target.value=""});
+const dz=$("#drop");
+["dragover","dragenter"].forEach(n=>dz.addEventListener(n,e=>{e.preventDefault();dz.classList.add("over")}));
+["dragleave","drop"].forEach(n=>dz.addEventListener(n,e=>{e.preventDefault();dz.classList.remove("over")}));
+dz.addEventListener("drop",e=>importFile(e.dataTransfer.files[0]));
+
+/* ---------- Visualizzazione ---------- */
+const cur=()=>D.list.find(x=>x.id===D.cur)||D.list[0];
+const fd=iso=>{const d=new Date(iso+"T12:00:00");return{w:d.toLocaleDateString("it-IT",{weekday:"short"}),n:d.getDate(),m:d.toLocaleDateString("it-IT",{month:"short"})}};
+function matchHtml(m,c,next){
+const own=m.home===c.team||m.away===c.team,d=fd(m.d);
+let rc="",tag="";
+if(m.res&&own){const mine=m.home===c.team?m.res[0]:m.res[1],oth=m.home===c.team?m.res[1]:m.res[0];rc=mine>oth?"win":"lose";tag=mine>oth?"Vinta":"Persa"}
+const hw=m.res&&m.res[0]>m.res[1],aw=m.res&&m.res[1]>m.res[0];
+return`<div class="mt${own?" own":""}${next?" next":""}"><div class="d">${d.w}<b>${d.n} ${d.m}</b>${m.t}</div><div class="t"><span class="${hw?"w":""}">${esc(m.home)}</span><span class="${aw?"w":""}">${esc(m.away)}</span></div><div class="s">G${m.g}${m.sets.length?" · "+esc(m.sets.join("  ")):""}</div><div class="r ${rc}">${m.res?m.res[0]+" - "+m.res[1]+(tag?`<i>${tag}</i>`:""):`<span class="st">—</span>`}</div></div>`;
+}
+function render(){
+const c=cur(),has=!!c;
+$("#main").hidden=!has;
+$("#imp").style.display=RO&&has?"none":"";
+$("#ttl").textContent=has?c.title:"Risultati e classifica";
+$("#sub").textContent=has?c.sub:"Importa il PDF “Risultati e classifica” generato da PowerSPORT.";
+if(!has)return;
+$("#sel").innerHTML=D.list.map(x=>`<option value="${esc(x.id)}"${x.id===c.id?" selected":""}>${esc(x.title)} · ${esc(x.sub)}</option>`).join("");
+$("#sel").style.display=D.list.length>1?"":"none";
+$("#del").style.display=RO?"none":"";
+$("#meta").textContent="Importato il "+new Date(c.imp).toLocaleDateString("it-IT",{day:"numeric",month:"short"});
+const played=c.matches.filter(m=>m.res),todo=c.matches.filter(m=>!m.res);
+$("#matches").innerHTML=(todo.length?`<div class="sec">Da disputare (${todo.length})</div>`+todo.map((m,i)=>matchHtml(m,c,i===0&&(m.home===c.team||m.away===c.team))).join(""):"")
++(played.length?`<div class="sec">Risultati (${played.length})</div>`+[...played].reverse().map(m=>matchHtml(m,c)).join(""):"");
+$("#ctitle").textContent=c.giornata?`Classifica dopo la ${c.giornata}ª giornata`:"Classifica";
+$("#tbl").innerHTML=`<tr>${["Pos","Squadra","Pt","PG","PV","PP","SF","SS","QS","PF","PS","QP","Pen"].map(h=>`<th scope="col">${h}</th>`).join("")}</tr>`+c.table.map(r=>`<tr class="${r.team===c.team?"own":""}"><td>${r.pos}</td><td title="${esc(r.team)}">${esc(r.team)}</td>${r.v.map(v=>`<td>${esc(v)}</td>`).join("")}</tr>`).join("");
+}
+$("#sel").addEventListener("change",e=>{D.cur=e.target.value;save(false);render()});
+$("#del").addEventListener("click",()=>{const c=cur();if(!c||!confirm("Eliminare “"+c.title+" · "+c.sub+"”?"))return;D.list=D.list.filter(x=>x.id!==c.id);D.cur=(D.list[0]||{}).id;save(true);render()});
+
+/* ---------- Sincronizzazione (stesso token e stesso repository dell'app schemi) ---------- */
+const REPO=(()=>{const m=location.hostname.match(/^([^.]+)\.github\.io$/),r=location.pathname.split("/")[1];return m&&r?{o:m[1],r:r}:null})();
+const API=REPO?"https://api.github.com/repos/"+REPO.o+"/"+REPO.r+"/contents/risultati-data.json":null;
+const tok=()=>{if(RO)return"";try{return localStorage.getItem("volley-token")||""}catch(e){return""}};
+const sm=t=>$("#syncMsg").textContent=t;
+let sha=null,busy=false;
+const hd=w=>{const h={Accept:"application/vnd.github+json"};if(tok())h.Authorization="Bearer "+tok();if(w)h["Content-Type"]="application/json";return h};
+async function pull(){
+const r=await fetch(API+"?t="+Date.now(),{headers:hd(),cache:"no-store"});
+if(r.status===404){sha=null;return null}
+if(!r.ok)throw r.status;
+const j=await r.json();sha=j.sha;
+const o=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\s/g,"")))));
+if(!o||!Array.isArray(o.list))throw 0;
+return o;
+}
+async function push(){
+const b={message:"Aggiornamento risultati",content:btoa(unescape(encodeURIComponent(JSON.stringify(D))))};
+if(sha)b.sha=sha;
+const r=await fetch(API,{method:"PUT",headers:hd(1),body:JSON.stringify(b)});
+if(!r.ok)throw r.status;
+sha=(await r.json()).content.sha;
+}
+async function sync(){
+if(!API||busy)return;
+busy=true;sm("Sincronizzazione…");
+try{
+const rem=await pull(),lu=D.updated||0,ru=rem?(rem.updated||0):0;
+if(rem&&ru>lu){D=rem;save(false);render();sm("Dati aggiornati ✓")}
+else if(lu>ru||(!rem&&D.list.length)){
+if(!tok())sm("Le modifiche sono solo su questo dispositivo.");
+else{await push();sm("Salvato online ✓")}
+}else sm("Già aggiornato ✓");
+}catch(e){
+sm(e===401?"Token non valido o scaduto (collegalo dalla pagina Schemi).":(e===409||e===422)?"Un altro dispositivo ha salvato: premi di nuovo Sincronizza.":"Salvataggio non riuscito o nessuna connessione.");
+}
+busy=false;
+}
+$("#syncBtn").addEventListener("click",sync);
+if(!API)$("#syncBtn").style.display="none";
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync()});
+render();
+sync();
+</script>
+<script src="pwa.js"></script>
+</body>
+</html>
