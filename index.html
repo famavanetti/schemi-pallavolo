@@ -301,8 +301,8 @@ $("#court").innerHTML=`<svg viewBox="0 0 400 392" role="img" aria-label="Campo v
 <defs><pattern id="mesh" width="8" height="6" patternUnits="userSpaceOnUse"><path d="M0 0H8M0 0V6" stroke="#fff" stroke-opacity=".65" stroke-width=".8" fill="none"/></pattern></defs><rect x="14" y="28" width="372" height="12" fill="url(#mesh)" stroke="#fff" stroke-width="2"/><line x1="14" y1="40" x2="14" y2="12" stroke="#fff" stroke-width="3" stroke-linecap="round"/><line x1="386" y1="40" x2="386" y2="12" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
 <text x="200" y="24" text-anchor="middle" font-size="13" fill="var(--court-ink)" font-weight="600">Rete</text>${ln}${g}</svg>`;
 }
-function roleChk(pos,c){
-if(S.rules.ord===false)return null;
+function roleChk(pos,c,force){
+if(S.rules.ord===false&&!force)return null;
 const g=r=>r==="L"?"C":r,a=[];
 for(const z of CIRC){const p=pl(pos[z]);if(!p)return null;a.push(g(eff(p,c)))}
 const n=k=>a.filter(x=>x===k).length;
@@ -367,7 +367,20 @@ $("#checks").innerHTML=w.length?w.map(t=>`<li>${esc(t)}</li>`).join(""):`<li cla
 function drawSRoles(){
 const c=cur();
 const it=[4,3,2,5,6,1].map(z=>{const p=pl(c.pos[z]);if(!p)return"";const cr=eff(p,c);return`<label><span><b>Z${z}</b> ${esc(p.name.slice(0,14))}</span><select data-sr="${p.id}" aria-label="Ruolo di ${esc(p.name)} in questo schema">${roleList(p).map(r=>`<option value="${r}"${cr===r?" selected":""}>${ROLES[r]}</option>`).join("")}</select></label>`}).join("");
-$("#sroles").innerHTML=it?`<p class="hint">Ruolo di ogni giocatore in questo schema (ognuno usa uno dei suoi tre ruoli):</p><div class="sr">${it}</div>`:"";
+$("#sroles").innerHTML=it?`<p class="hint">Ruolo di ogni giocatore in questo schema (ognuno usa uno dei suoi tre ruoli):</p><div class="sr">${it}</div><button type="button" id="autoRoles" style="margin-top:8px">⚙ Assegna ruoli in automatico</button>`:"";
+}
+function autoRoles(){
+const c=cur(),ps=CIRC.map(z=>pl(c.pos[z]));
+if(ps.some(p=>!p)){alert("Metti in campo tutti e 6 i giocatori prima di assegnare i ruoli.");return}
+const lists=ps.map(roleList),t={roles:{}};let best=null,bc=1e9;
+(function rec(i,cost){
+if(cost>=bc)return;
+if(i===6){if(roleChk(c.pos,t,true)===null&&!FRONT.some(z=>t.roles[c.pos[z]]==="L")){best={...t.roles};bc=cost}return}
+lists[i].forEach((r,k)=>{t.roles[ps[i].id]=r;rec(i+1,cost+k)});
+})(0,0);
+if(!best){alert("Con i ruoli inseriti nell’anagrafica non esiste nessuna combinazione valida (servono 1 P, 1 OP, 2 B e 2 C, con le coppie in diagonale P-OP, B-B, C-C). Aggiungi un ruolo ai giocatori oppure cambia la formazione in campo.");return}
+c.roles={};ps.forEach(p=>{if(best[p.id]!==p.role)c.roles[p.id]=best[p.id]});
+sel=null;render();
 }
 let onlyOn=false;
 function drawRoster(){
@@ -492,6 +505,7 @@ $("#allOff").addEventListener("click",()=>{S.players.forEach(p=>p.pres=false);S.
 $("#onlyOn").addEventListener("change",e=>{onlyOn=e.target.checked;render()});
 $("#rLib").addEventListener("click",()=>{S.rules={minF:2,minM:2,maxMF:2,v:2,ord:true};render()});
 $("#rO").addEventListener("change",e=>{S.rules.ord=e.target.checked;render()});
+$("#sroles").addEventListener("click",e=>{if(e.target.closest("#autoRoles"))autoRoles()});
 $("#sroles").addEventListener("change",e=>{const id=e.target.dataset.sr;if(!id)return;const c=cur(),p=pl(id);c.roles=c.roles||{};if(e.target.value===p.role)delete c.roles[id];else c.roles[id]=e.target.value;render()});
 [["rF","minF"],["rM","minM"],["rX","maxMF"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{S.rules[k]=Math.max(0,+e.target.value||0);render()}));
 const REPO=(()=>{const m=location.hostname.match(/^([^.]+)\.github\.io$/),r=location.pathname.split("/")[1];return m&&r?{o:m[1],r:r}:null})();
