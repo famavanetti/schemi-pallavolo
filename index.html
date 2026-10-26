@@ -131,6 +131,8 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 .grip.fp{box-shadow:0 0 0 2px #2f9e44}
 .tg{padding:2px 9px;transition:transform .15s}.pl.open .tg{transform:rotate(180deg)}
 .tool.on{background:var(--sel);color:#fff;border-color:var(--sel)}
+.wa-btn{background:#1f9d55;color:#fff;border-color:#1f9d55;font-weight:600}
+.wa-btn:hover{background:#178a49;border-color:#178a49}
 .sr{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin-top:6px}
 .sr label{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:14px}
 .sr select{max-width:128px}
@@ -379,15 +381,17 @@ function waConvocati(){
 const n=p=>parseInt(p.num,10);
 return S.players.filter(p=>p.pres!==false).sort((a,b)=>(isNaN(n(a))?999:n(a))-(isNaN(n(b))?999:n(b))||a.name.localeCompare(b.name));
 }
-function waScheme(s){
-const L=zs=>zs.map(z=>{const p=pl((s.pos||{})[z]);if(!p)return`Z${z} —`;const m=((s.marks||{})[p.id]||[]).map(k=>MARKS[k].s).join("");return`Z${z} ${p.num?p.num+" ":""}${p.name} (${eff(p,s)})${m?" "+m:""}`}).join(" · ");
-return`*Schema ${s.name||"senza nome"}* (${KINDS[s.kind||"ric"]})\nDavanti: ${L([4,3,2])}\nDietro: ${L([5,6,1])}`;
+const KEYC={1:"1️⃣",2:"2️⃣",3:"3️⃣",4:"4️⃣",5:"5️⃣",6:"6️⃣"};
+function waScheme(s,sub){
+const L=zs=>zs.map(z=>{const p=pl((s.pos||{})[z]);if(!p)return`${KEYC[z]} —`;const m=((s.marks||{})[p.id]||[]).map(k=>MARKS[k].s).join("");return`${KEYC[z]} ${p.num?p.num+" ":""}${p.name} (${eff(p,s)})${m?" "+m:""}`}).join("\n");
+return`📋 *Formazione di partenza*${sub?"\n_"+sub+"_":""}\n\n_Prima linea_\n${L([4,3,2])}\n\n_Seconda linea_\n${L([5,6,1])}`;
 }
 function waText(){
-const parts=[];
-if(waSt.head.trim())parts.push("*"+waSt.head.trim()+"*");
-if(waSt.conv){const c=waConvocati();parts.push(`*Convocati (${c.length})*\n`+(c.map(p=>`${p.num?p.num+" – ":""}${p.name}`).join("\n")||"—"))}
-S.schemes.filter(s=>waSt.sch.has(s.id)).forEach(s=>parts.push(waScheme(s)));
+const ss=S.schemes.filter(s=>waSt.sch.has(s.id)),parts=[],h=waSt.head.trim();
+const head=h||(ss[0]?(ss[0].name||"Schema"):"");
+if(head)parts.push("🏐 *"+head+"*");
+if(waSt.conv){const c=waConvocati();parts.push(`👥 *Convocati (${c.length})*\n`+(c.map(p=>`${p.num?p.num+" – ":""}${p.name}`).join("\n")||"—"))}
+ss.forEach(x=>parts.push(waScheme(x,(ss.length>1||h)?(x.name||"Schema"):"")));
 return parts.join("\n\n");
 }
 function drawWA(){
@@ -398,11 +402,11 @@ if(!waSt.sch)waSt.sch=new Set([S.cur]);
 waSt.sch=new Set([...waSt.sch].filter(id=>S.schemes.some(s=>s.id===id)));
 box.innerHTML=`<h2>Invia su WhatsApp</h2>
 <p class="hint" style="margin:2px 0 10px">Scegli cosa inviare, controlla il testo (puoi modificarlo) e premi Invia: si apre WhatsApp e scegli tu la chat o il gruppo.</p>
-<div class="bar"><input id="waHead" placeholder="Titolo (es. Partita sabato 31/10 ore 21, palestra…)" value="${esc(waSt.head)}" aria-label="Titolo del messaggio"></div>
+<div class="bar"><input id="waHead" placeholder="Titolo (facoltativo: se vuoto uso il nome dello schema)" value="${esc(waSt.head)}" aria-label="Titolo del messaggio"></div>
 <label class="ck" style="margin-bottom:6px"><input type="checkbox" id="waConv"${waSt.conv?" checked":""}> Elenco convocati (${waConvocati().length})</label>
 ${S.schemes.map(s=>`<label class="ck" style="margin-bottom:6px"><input type="checkbox" data-ws="${s.id}"${waSt.sch.has(s.id)?" checked":""}> Schema: ${esc(s.name||"Senza nome")} <span class="st">${KINDS[s.kind||"ric"]}</span></label>`).join("")}
 <textarea id="waTxt" rows="11" aria-label="Anteprima del messaggio">${esc(waText())}</textarea>
-<div class="bar" style="margin-top:8px"><button type="button" id="waSend" class="primary">Invia su WhatsApp</button><button type="button" id="waCopy">Copia testo</button><span class="st" id="waMsg" role="status" style="white-space:normal;align-self:center"></span></div>`;
+<div class="bar" style="margin-top:8px"><button type="button" id="waSend" class="wa-btn">Invia su WhatsApp</button><button type="button" id="waCopy">Copia testo</button><span class="st" id="waMsg" role="status" style="white-space:normal;align-self:center"></span></div>`;
 }
 const waPrev=()=>{$("#waTxt").value=waText()};
 function autoRoles(){
