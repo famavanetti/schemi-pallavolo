@@ -58,6 +58,18 @@ td:nth-child(3){font-weight:700}
 tr.own td{background:var(--own);font-weight:600}
 td:nth-child(2){max-width:190px;overflow:hidden;text-overflow:ellipsis}
 .x{color:var(--warn)}
+.s2{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:700px){.s2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.sh{font:700 17px "Barlow Condensed",system-ui,sans-serif;margin:0 0 8px}
+.chips{display:flex;gap:6px;margin-bottom:8px}
+.chip{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:2px solid currentColor;border-radius:50%;font:700 15px "Barlow Condensed",system-ui,sans-serif}
+.chip.win{color:var(--ok)}.chip.lose{color:var(--warn)}
+.fl{font-size:14px;margin:2px 0}.fl b{font-variant-numeric:tabular-nums}
+.bt{display:grid;grid-template-columns:36px 1fr 24px;gap:8px;align-items:center;margin:4px 0;font-variant-numeric:tabular-nums}
+.bt span{color:var(--muted)}.bt b{text-align:right}
+.bb{height:12px;background:var(--bg);border-radius:6px;overflow:hidden}
+.bb i{display:block;height:100%;background:currentColor;border-radius:6px}
+.bb i.win{color:var(--ok)}.bb i.lose{color:var(--warn)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -84,6 +96,7 @@ td:nth-child(2){max-width:190px;overflow:hidden;text-overflow:ellipsis}
 <section class="card"><h2 style="margin-bottom:10px">Partite</h2><div id="matches"></div></section>
 <section class="card"><h2 style="margin-bottom:10px" id="ctitle">Classifica</h2><div class="tw"><table id="tbl"></table></div></section>
 </div>
+<section class="card" style="margin-top:16px"><h2 style="margin-bottom:10px">Statistiche</h2><div id="statsBody"></div></section>
 </div>
 </div>
 
@@ -143,6 +156,15 @@ let team=names.find(n=>n.toUpperCase()===guess.toUpperCase())||guess;
 const gm=lines.join(" ").match(/CLASSIFICA ALLA (\d+)/i);
 return{id:(title+"|"+sub).toLowerCase(),title,sub,team,giornata:gm?+gm[1]:null,matches,table,imp:Date.now()};
 }
+/* Storico: ogni importazione aggiorna i dati ma conserva partite e classifiche delle giornate precedenti */
+const snap=c=>c&&c.giornata?{[c.giornata]:{imp:c.imp,table:c.table}}:{};
+function merge(o,c){
+const k=m=>m.g+"|"+m.home+"|"+m.away,mp=new Map((o.matches||[]).map(m=>[k(m),m]));
+c.matches.forEach(m=>{const p=mp.get(k(m));mp.set(k(m),(m.res||!p)?m:p)});
+c.matches=[...mp.values()].sort((a,b)=>(a.d+a.t).localeCompare(b.d+b.t));
+c.hist=Object.assign({},snap(o),o.hist,snap(c));
+return c;
+}
 async function importFile(f){
 const msg=t=>$("#impMsg").textContent=t;
 if(!f)return;
@@ -150,7 +172,7 @@ msg("Lettura del PDF…");
 try{
 const c=parse(await pdfLines(await f.arrayBuffer()));
 const i=D.list.findIndex(x=>x.id===c.id);
-if(i>=0)D.list[i]=c;else D.list.push(c);
+if(i>=0)D.list[i]=merge(D.list[i],c);else{c.hist=snap(c);D.list.push(c)}
 D.cur=c.id;save(true);render();
 msg(`Importato: ${c.matches.length} partite, ${c.table.length} squadre ✓`);
 }catch(e){msg("Non riesco a leggere questo PDF: serve il file “Risultati e classifica” di PowerSPORT.")}
@@ -172,6 +194,21 @@ if(m.res&&own){const mine=m.home===c.team?m.res[0]:m.res[1],oth=m.home===c.team?
 const hw=m.res&&m.res[0]>m.res[1],aw=m.res&&m.res[1]>m.res[0];
 return`<div class="mt${own?" own":""}${next?" next":""}"><div class="d">${d.w}<b>${d.n} ${d.m}</b>${m.t}</div><div class="t"><span class="${hw?"w":""}">${esc(m.home)}</span><span class="${aw?"w":""}">${esc(m.away)}</span></div><div class="s">G${m.g}${m.sets.length?" · "+esc(m.sets.join("  ")):""}</div><div class="r ${rc}">${m.res?m.res[0]+" - "+m.res[1]+(tag?`<i>${tag}</i>`:""):`<span class="st">—</span>`}</div></div>`;
 }
+function stats(c){
+const p=c.matches.filter(m=>m.res&&(m.home===c.team||m.away===c.team)).map(m=>{const h=m.home===c.team;return{a:h?m.res[0]:m.res[1],b:h?m.res[1]:m.res[0],opp:h?m.away:m.home,d:m.d}});
+if(!p.length)return'<p class="hint" style="margin:0">Le statistiche compariranno dopo la prima partita giocata.</p>';
+const pt=x=>x.a>x.b?(x.b>=2?2:3):(x.a>=2?1:0);
+const last=p.slice(-5),lw=p[p.length-1].a>p[p.length-1].b;
+let n=1;for(let i=p.length-2;i>=0&&(p[i].a>p[i].b)===lw;i--)n++;
+const chips=last.map(x=>`<span class="chip ${x.a>x.b?"win":"lose"}" title="${esc(x.opp)} ${x.a}-${x.b}">${x.a>x.b?"V":"P"}</span>`).join("");
+const rows=[...last].reverse().map(x=>{const d=fd(x.d);return`<div class="fl">${d.n} ${d.m} · ${esc(x.opp)} <b class="${x.a>x.b?"win":"lose"}">${x.a}-${x.b}</b></div>`}).join("");
+const forma=`<h3 class="sh">Forma recente</h3><div class="chips">${chips}</div>${rows}<p class="st" style="margin:8px 0 0">Serie in corso: ${n} ${lw?(n>1?"vittorie":"vittoria"):(n>1?"sconfitte":"sconfitta")} · ${last.reduce((s,x)=>s+pt(x),0)} punti nelle ultime ${last.length}</p>`;
+const keys=[[3,0],[3,1],[3,2],[2,3],[1,3],[0,3]],cnt=k=>p.filter(x=>x.a===k[0]&&x.b===k[1]).length,mx=Math.max(1,...keys.map(cnt));
+const bars=keys.map(k=>`<div class="bt"><span>${k[0]}-${k[1]}</span><div class="bb"><i class="${k[0]>k[1]?"win":"lose"}" style="width:${cnt(k)/mx*100}%"></i></div><b>${cnt(k)}</b></div>`).join("");
+const tb=p.filter(x=>x.a+x.b===5),tbw=tb.filter(x=>x.a>x.b).length;
+const tipo=`<h3 class="sh">Tipo di risultato</h3>${bars}<p class="st" style="margin:8px 0 0">Al tie-break: ${tb.length?tbw+" vinti su "+tb.length:"nessuna partita finora"}</p>`;
+return`<div class="s2"><div>${forma}</div><div>${tipo}</div></div>`;
+}
 function render(){
 const c=cur(),has=!!c;
 $("#main").hidden=!has;
@@ -186,6 +223,7 @@ $("#meta").textContent="Importato il "+new Date(c.imp).toLocaleDateString("it-IT
 const played=c.matches.filter(m=>m.res),todo=c.matches.filter(m=>!m.res);
 $("#matches").innerHTML=(todo.length?`<div class="sec">Da disputare (${todo.length})</div>`+todo.map((m,i)=>matchHtml(m,c,i===0&&(m.home===c.team||m.away===c.team))).join(""):"")
 +(played.length?`<div class="sec">Risultati (${played.length})</div>`+[...played].reverse().map(m=>matchHtml(m,c)).join(""):"");
+$("#statsBody").innerHTML=stats(c);
 $("#ctitle").textContent=c.giornata?`Classifica dopo la ${c.giornata}ª giornata`:"Classifica";
 $("#tbl").innerHTML=`<tr>${["Pos","Squadra","Pt","PG","PV","PP","SF","SS","QS","PF","PS","QP","Pen"].map(h=>`<th scope="col">${h}</th>`).join("")}</tr>`+c.table.map(r=>`<tr class="${r.team===c.team?"own":""}"><td>${r.pos}</td><td title="${esc(r.team)}">${esc(r.team)}</td>${r.v.map(v=>`<td>${esc(v)}</td>`).join("")}</tr>`).join("");
 }
