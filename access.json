@@ -7,7 +7,7 @@
   {
    "id": "de1nbg",
    "name": "Daniele",
-   "active": true,
+   "active": false,
    "role": "editor",
    "conv": true,
    "board": true
