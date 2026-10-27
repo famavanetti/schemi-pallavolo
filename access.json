@@ -2,12 +2,13 @@
  "siteActive": true,
  "guestActive": false,
  "message": "",
+ "features": {},
  "users": [
   {
    "id": "de1nbg",
    "name": "Daniele",
    "active": true,
-   "role": "editor",
+   "role": "subadmin",
    "conv": true
   },
   {
