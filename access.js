@@ -10,6 +10,10 @@
    - volleyIsSub         true se è un Sotto-admin
    - volleyCanSeeDrafts  può vedere gli schemi con status "draft" (bozze)
    - volleyCanPublish    può trasformare una bozza in "published"
+   - volleyCanEditSchemi  false = il Gestore vede gli schemi ma non li modifica
+   - volleyCanClassifica  false = il Gestore non vede la Classifica (da controllare anche in classifica.html)
+   - volleyPlayers        "edit" | "conv" (solo convocati) | "view" (solo vista)
+   - volleyBoard          può usare la lavagna (lavagna.js)
    - volleyFeatures      oggetto "features" di access.json
 */
 (function () {
@@ -19,6 +23,9 @@
   window.volleyIsSub = false;
   window.volleyCanSeeDrafts = true;
   window.volleyCanPublish = true;
+  window.volleyCanEditSchemi = true;
+  window.volleyCanClassifica = true;
+  window.volleyPlayers = "edit";
   window.volleyFeatures = {};
   if (!m || !repo) return;
   var ls = function (k, v) {
@@ -85,7 +92,13 @@
     window.volleyCanSeeDrafts = lvl === "subadmin" || (lvl === "editor" && f.gestoreDrafts === true);
     window.volleyCanPublish = lvl === "subadmin" || (lvl === "editor" && f.gestorePublish === true);
 
-    window.volleyBoard = window.volleyRole !== "viewer" || !!(uu && uu.board === true);
+    // Permessi del Gestore (admin e Sotto-admin hanno sempre tutto; i default sono permissivi)
+    var isEd = lvl === "editor";
+    window.volleyCanEditSchemi = isEd ? f.gestoreSchemi !== false : true;
+    window.volleyCanClassifica = isEd ? f.gestoreClassifica !== false : true;
+    // Giocatori: "edit" (modifica e aggiunge) | "conv" (solo convocati) | "view" (solo vista)
+    window.volleyPlayers = isEd && (f.gestorePlayers === "view" || f.gestorePlayers === "conv") ? f.gestorePlayers : "edit";
+    window.volleyBoard = isEd ? f.gestoreBoard !== false : (window.volleyRole !== "viewer" || !!(uu && uu.board === true));
     window.volleyConv = !!(uu && uu.conv === true);
     window.volleyAllowed = uu && Array.isArray(uu.schemes) && window.volleyRole === "viewer" ? uu.schemes : null;
     try { document.dispatchEvent(new Event("volleyrole")); } catch (e) {}

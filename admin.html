@@ -107,8 +107,12 @@ const roleOf=u=>u.role==="subadmin"||u.role==="editor"?u.role:"viewer";
 
 /* Permessi del Gestore: per aggiungerne uno basta una riga qui (default = NO) */
 const FEATS=[
-{k:"gestoreDrafts",t:"Il Gestore vede le bozze",h:"NO = ciò che crei resta nascosto al Gestore finché non lo pubblichi."},
-{k:"gestorePublish",t:"Il Gestore può pubblicare",h:"NO = solo tu e i Sotto-admin potete rendere visibile una bozza."}
+{k:"gestoreSchemi",t:"Schemi: il Gestore può modificarli",h:"NO = vede gli schemi ma non li modifica, non li crea e non li elimina.",def:true},
+{k:"gestoreClassifica",t:"Classifica",h:"NO = il Gestore non vede il pulsante Classifica.",def:true},
+{k:"gestoreBoard",t:"Lavagna",h:"NO = il Gestore non può usare la lavagna.",def:true},
+{k:"gestorePlayers",t:"Giocatori",h:"Modifica = cambia e aggiunge giocatori. Solo convocati = può solo spuntare chi è convocato. Solo vista = vede l’elenco e basta.",def:"edit",opts:[["edit","Modifica"],["conv","Solo convocati"],["view","Solo vista"]]},
+{k:"gestoreDrafts",t:"Bozze: il Gestore le vede",h:"NO = ciò che crei resta nascosto al Gestore finché non lo pubblichi.",def:false},
+{k:"gestorePublish",t:"Bozze: il Gestore può pubblicare",h:"NO = solo tu e i Sotto-admin potete rendere visibile una bozza.",def:false}
 ];
 
 async function load(){
@@ -161,7 +165,11 @@ function render(){
 sw($("#site"),C.siteActive!==false);sw($("#guest"),C.guestActive!==false);
 $("#msg").value=C.message||"";
 const F=C.features||{};
-$("#feat").innerHTML=FEATS.map(f=>{const on=F[f.k]===true;return`<div class="row"><span><b>${esc(f.t)}</b><p class="hint">${esc(f.h)}</p></span><button class="sw" data-f="${f.k}" type="button" aria-pressed="${on}" aria-label="${esc(f.t)}">${on?"SI":"NO"}</button></div>`}).join("");
+$("#feat").innerHTML=FEATS.map(f=>{
+const row=b=>`<div class="row"><span><b>${esc(f.t)}</b><p class="hint">${esc(f.h)}</p></span>${b}</div>`;
+if(f.opts){const v=F[f.k]===undefined?f.def:F[f.k],o=f.opts.find(x=>x[0]===v)||f.opts[0];return row(`<button data-f="${f.k}" type="button" style="white-space:nowrap;font-weight:600" aria-label="${esc(f.t)}">${o[1]}</button>`)}
+const on=F[f.k]===undefined?f.def:F[f.k]===true;
+return row(`<button class="sw" data-f="${f.k}" type="button" aria-pressed="${on}" aria-label="${esc(f.t)}">${on?"SI":"NO"}</button>`)}).join("");
 $("#list").innerHTML=C.users.map(u=>{const on=u.active!==false;const sc=schemeCtl(u);const r=roleOf(u);const rc=r==="subadmin"?" sub":r==="editor"?" ed":"";return`<li class="${on?"":"off"}" data-id="${u.id}"><span class="n">${esc(u.name)}${u.exp?` <small class="${u.exp<todayS()?"bad":""}">${u.exp<todayS()?"· scaduto il ":"· scade il "}${fmtD(u.exp)}</small>`:""}</span><input class="dt" type="date" data-a="exp" value="${u.exp||""}" aria-label="Scadenza di ${esc(u.name)}" title="Scadenza (vuoto = mai)"><button class="role${rc}" data-a="role" type="button" title="Cambia ruolo">${RL[r]}</button><button class="sw" data-a="act" type="button" aria-pressed="${on}" aria-label="Attivo: ${esc(u.name)}">${on?"SI":"NO"}</button><button data-a="cp" type="button">Copia link</button><button data-a="wa" type="button">WhatsApp</button>${sc.btn}${sc.brd}<button class="x" data-a="del" type="button" aria-label="Elimina ${esc(u.name)}">✕</button>${sc.panel}</li>`}).join("")||`<li class="hint">Nessuna persona: aggiungi la prima qui sopra.</li>`;
 }
 $("#site").onclick=()=>{C.siteActive=C.siteActive===false;render();save()};
@@ -170,7 +178,9 @@ $("#msg").onchange=e=>{C.message=e.target.value.trim();save()};
 $("#feat").onclick=e=>{
 const b=e.target.closest("[data-f]");if(!b)return;
 if(!C.features)C.features={};
-C.features[b.dataset.f]=C.features[b.dataset.f]!==true;
+const f=FEATS.find(x=>x.k===b.dataset.f),cv=C.features[f.k],v=cv===undefined?f.def:cv;
+if(f.opts){const i=f.opts.findIndex(x=>x[0]===v);C.features[f.k]=f.opts[(i+1)%f.opts.length][0]}
+else C.features[f.k]=!v;
 render();save();
 };
 function add(){

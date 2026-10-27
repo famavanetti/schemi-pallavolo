@@ -142,6 +142,12 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 .sr{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin-top:6px}
 .sr label{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:14px}
 .sr select{max-width:128px}
+.cls[hidden]{display:none}
+/* Permessi del Gestore (vedi access.js) */
+.noSch #court,.noSch #rots,.noSch #sroles,.noSch #tools,.noSch .seg,.noSch .top,.noSch details,.noSch [data-grip],.noSch [data-pick]{pointer-events:none;opacity:.6}
+.noSch #newS,.noSch #dup,.noSch #del,.noSch .sc [data-dup],.noSch .sc [data-del]{display:none}
+.pView #add,.pConv #add,.pView #allOn,.pView #allOff{display:none}
+.pView .pl [data-del],.pConv .pl [data-del]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -279,7 +285,15 @@ const o=S.schemes.find(s=>s.id===id);if(!o)return;
 if(st==="published")delete o.status;else o.status=st;
 render();
 }
+function perms(){
+const b=document.body.classList;
+b.toggle("noSch",window.volleyCanEditSchemi===false);
+b.toggle("pView",window.volleyPlayers==="view");
+b.toggle("pConv",window.volleyPlayers==="conv");
+const c=document.querySelector(".cls");if(c)c.hidden=window.volleyCanClassifica===false;
+}
 function render(){
+perms();
 const ed=view==="edit"&&S.schemes.length>0;
 $("#home").hidden=ed;$("#editor").hidden=!ed;
 if(!ed){drawHome();save();return}
@@ -443,6 +457,7 @@ sel=null;render();
 }
 let onlyOn=false;
 function drawRoster(){
+const pm=window.volleyPlayers;
 $("#roster").innerHTML=[...S.players].filter(p=>!onlyOn||p.pres!==false).sort((a,b)=>{const k=p=>{const z=zoneOf(p.id);return z?z:(p.pres===false?9:7)};return k(a)-k(b)}).map(p=>{
 const z=zoneOf(p.id),on=sel&&sel.t==="p"&&sel.id===p.id;
 const rs=[["role","1° ruolo",0],["ro2","2° ruolo",1],["ro3","3° ruolo",1]].map(([k,l,b])=>`<label class="rt">${l}<select data-k="${k}" aria-label="${l}" style="width:100%">${b?`<option value="">—</option>`:""}${Object.keys(ROLES).map(r=>`<option value="${r}"${p[k]===r?" selected":""}>${ROLES[r]}</option>`).join("")}</select></label>`).join("");
@@ -455,6 +470,7 @@ return`<div class="pl ${on?"sel":""} ${open===p.id?"open":""} ${p.pres===false?"
 <div class="row"><label class="rt">N° maglia<input type="number" min="0" max="99" data-k="num" value="${esc(p.num||"")}" aria-label="Numero di maglia"></label><label class="rt" style="flex:1 1 140px">N° matricola tesserato<input type="text" inputmode="numeric" data-k="mat" style="width:100%" value="${esc(p.mat||"")}" aria-label="Numero di matricola del tesserato"></label></div>
 <div class="row"><label class="ck"><input type="checkbox" data-k="fipav"${p.fipav?" checked":""}> Tesserato FIPAV serie D / 1ª div</label></div>
 <div class="row"><button class="pick" data-pick="1">${z?`In campo, zona ${z}`:"In panchina"} · ${on?"scelto, tocca una zona":"tocca per scegliere"}</button><span class="avg">Media ${avg(p)}</span></div></div>`}).join("")||`<p class="hint">${onlyOn?"Nessun giocatore convocato.":"Nessun giocatore: aggiungi il primo."}</p>`;
+if(pm==="view"||pm==="conv")$("#roster").querySelectorAll("input,select").forEach(e=>{if(!(pm==="conv"&&e.dataset.k==="pres"))e.disabled=true});
 }
 function zoneClick(z){
 const c=cur();
