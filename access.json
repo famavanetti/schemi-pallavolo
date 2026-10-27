@@ -16,7 +16,8 @@
    "id": "dvsxo7",
    "name": "Fabio",
    "active": true,
-   "role": "viewer"
+   "role": "viewer",
+   "board": true
   }
  ]
 }
