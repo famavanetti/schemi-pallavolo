@@ -39,6 +39,7 @@ li.off .n{color:var(--muted);text-decoration:line-through}
 .back:hover{background:#ffca1a}
 .role{font-weight:600;white-space:nowrap}
 .role.ed{background:#ffd43b;border-color:#e0a800;color:#15202b}
+.role.sub{background:var(--sel);border-color:#d97a00;color:#fff}
 li{flex-wrap:wrap}
 li .n{flex:1 1 110px}
 li .n small{font-weight:400;color:var(--muted)}
@@ -47,6 +48,7 @@ li input.dt{width:auto;flex:none;padding:5px 6px}
 .schs{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:6px 0 2px}
 .schs label{display:inline-flex;gap:6px;align-items:center}
 .schs input{width:auto}
+.schs .dr{color:var(--muted);font-size:13px}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -72,9 +74,15 @@ li input.dt{width:auto;flex:none;padding:5px 6px}
 </section>
 
 <section class="card">
+<h2>Permessi del Gestore</h2>
+<p class="hint">Tu e i Sotto-admin avete sempre tutto. Qui scegli cosa può fare il Gestore.</p>
+<div id="feat"></div>
+</section>
+
+<section class="card">
 <h2>Persone</h2>
 <p class="hint">Ognuno ha un link personale. SI = può aprire il sito, NO = vede solo il messaggio.</p>
-<p class="hint"><b>Gestore</b> = può modificare gli schemi. <b>Solo vista</b> = vede gli schemi e usa la lavagna. Chi apre il sito senza codice è sempre in sola vista.</p>
+<p class="hint"><b>Sotto-admin</b> = come il Gestore, ma vede sempre le bozze e può pubblicarle. <b>Gestore</b> = può modificare gli schemi (bozze e pubblicazione secondo i permessi qui sopra). <b>Solo vista</b> = vede gli schemi pubblicati e usa la lavagna. Chi apre il sito senza codice è sempre in sola vista.</p>
 <div class="add"><input id="nn" maxlength="40" placeholder="Nome (es. Marco)" aria-label="Nome della persona"><button id="addb" type="button">Aggiungi</button></div>
 <ul id="list"></ul>
 </section>
@@ -88,9 +96,20 @@ const API=mm&&rp?"https://api.github.com/repos/"+mm[1]+"/"+rp+"/contents/access.
 const base=location.href.replace(/[^/]*([?#].*)?$/,"");
 const tok=()=>{try{return localStorage.getItem("volley-token")||""}catch(e){return""}};
 const st=t=>{$("#st").textContent=t};
-let C={siteActive:true,guestActive:true,message:"",users:[]},sha=null,q=Promise.resolve();
+let C={siteActive:true,guestActive:true,message:"",features:{},users:[]},sha=null,q=Promise.resolve();
 const H=w=>{const h={Accept:"application/vnd.github+json",Authorization:"Bearer "+tok()};if(w)h["Content-Type"]="application/json";return h};
 const err=e=>e===401?"Token non valido o scaduto: collegalo di nuovo.":(e===403||e===404)?"Permesso negato: il token deve avere Contents → Read and write.":(e===409||e===422)?"Conflitto: ricarica la pagina e riprova.":"Nessuna connessione.";
+
+/* Ruoli: Solo vista → Gestore → Sotto-admin → Solo vista */
+const RL={viewer:"Solo vista",editor:"Gestore",subadmin:"Sotto-admin"};
+const NEXT={viewer:"editor",editor:"subadmin",subadmin:"viewer"};
+const roleOf=u=>u.role==="subadmin"||u.role==="editor"?u.role:"viewer";
+
+/* Permessi del Gestore: per aggiungerne uno basta una riga qui (default = NO) */
+const FEATS=[
+{k:"gestoreDrafts",t:"Il Gestore vede le bozze",h:"NO = ciò che crei resta nascosto al Gestore finché non lo pubblichi."},
+{k:"gestorePublish",t:"Il Gestore può pubblicare",h:"NO = solo tu e i Sotto-admin potete rendere visibile una bozza."}
+];
 
 async function load(){
 const r=await fetch(API+"?t="+Date.now(),{headers:H(),cache:"no-store"});
@@ -99,6 +118,7 @@ if(!r.ok)throw r.status;
 const j=await r.json();sha=j.sha;
 C=Object.assign(C,JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\s/g,""))))));
 if(!Array.isArray(C.users))C.users=[];
+if(!C.features||typeof C.features!=="object")C.features={};
 }
 function save(){
 q=q.then(async()=>{
@@ -121,9 +141,10 @@ const al=Array.isArray(u.schemes)?u.schemes:null;
 const n=al?SCH.filter(s=>al.includes(s.id)).length:SCH.length;
 const btn=`<button data-a="sch" type="button" title="Quali schemi può vedere">Schemi: ${al?n+" di "+SCH.length:"tutti"}</button>`;
 let panel="";
-if(openId===u.id)panel=`<div class="schs">${SCH.length?SCH.map(s=>`<label><input type="checkbox" data-s="${esc(s.id)}"${(!al||al.includes(s.id))?" checked":""}> ${esc(s.name)}</label>`).join(""):`<span class="hint">Nessuno schema trovato.</span>`}<button data-a="all" type="button">Tutti</button></div>`;
-const brd=u.role==="editor"?"":`<button data-a="brd" type="button" title="Può usare la lavagna">Lavagna: ${u.board===true?"SI":"NO"}</button>`;
-const cv=u.role==="editor"?"":`<button data-a="cv" type="button" title="Può vedere l'elenco dei convocati">Convocati: ${u.conv===true?"SI":"NO"}</button>`;
+if(openId===u.id)panel=`<div class="schs">${SCH.length?SCH.map(s=>`<label><input type="checkbox" data-s="${esc(s.id)}"${(!al||al.includes(s.id))?" checked":""}> ${esc(s.name)}${s.draft?` <span class="dr">(bozza)</span>`:""}</label>`).join(""):`<span class="hint">Nessuno schema trovato.</span>`}<button data-a="all" type="button">Tutti</button></div>`;
+const staff=roleOf(u)!=="viewer";
+const brd=staff?"":`<button data-a="brd" type="button" title="Può usare la lavagna">Lavagna: ${u.board===true?"SI":"NO"}</button>`;
+const cv=staff?"":`<button data-a="cv" type="button" title="Può vedere l'elenco dei convocati">Convocati: ${u.conv===true?"SI":"NO"}</button>`;
 return{btn,panel,brd:brd+cv};
 }
 async function loadSch(){
@@ -132,18 +153,26 @@ const r=await fetch(API.replace("access.json","volley-data.json")+"?t="+Date.now
 if(!r.ok)return;
 const j=await r.json();
 const o=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\s/g,"")))));
-SCH=(o.schemes||[]).map(s=>({id:s.id,name:s.name||"Senza nome"}));
+SCH=(o.schemes||[]).map(s=>({id:s.id,name:s.name||"Senza nome",draft:s.status==="draft"}));
 }catch(e){}
 }
 function sw(el,on){el.setAttribute("aria-pressed",on);el.textContent=on?"SI":"NO"}
 function render(){
 sw($("#site"),C.siteActive!==false);sw($("#guest"),C.guestActive!==false);
 $("#msg").value=C.message||"";
-$("#list").innerHTML=C.users.map(u=>{const on=u.active!==false;const sc=schemeCtl(u);return`<li class="${on?"":"off"}" data-id="${u.id}"><span class="n">${esc(u.name)}${u.exp?` <small class="${u.exp<todayS()?"bad":""}">${u.exp<todayS()?"· scaduto il ":"· scade il "}${fmtD(u.exp)}</small>`:""}</span><input class="dt" type="date" data-a="exp" value="${u.exp||""}" aria-label="Scadenza di ${esc(u.name)}" title="Scadenza (vuoto = mai)"><button class="role${u.role==="editor"?" ed":""}" data-a="role" type="button" title="Cambia ruolo">${u.role==="editor"?"Gestore":"Solo vista"}</button><button class="sw" data-a="act" type="button" aria-pressed="${on}" aria-label="Attivo: ${esc(u.name)}">${on?"SI":"NO"}</button><button data-a="cp" type="button">Copia link</button><button data-a="wa" type="button">WhatsApp</button>${sc.btn}${sc.brd}<button class="x" data-a="del" type="button" aria-label="Elimina ${esc(u.name)}">✕</button>${sc.panel}</li>`}).join("")||`<li class="hint">Nessuna persona: aggiungi la prima qui sopra.</li>`;
+const F=C.features||{};
+$("#feat").innerHTML=FEATS.map(f=>{const on=F[f.k]===true;return`<div class="row"><span><b>${esc(f.t)}</b><p class="hint">${esc(f.h)}</p></span><button class="sw" data-f="${f.k}" type="button" aria-pressed="${on}" aria-label="${esc(f.t)}">${on?"SI":"NO"}</button></div>`}).join("");
+$("#list").innerHTML=C.users.map(u=>{const on=u.active!==false;const sc=schemeCtl(u);const r=roleOf(u);const rc=r==="subadmin"?" sub":r==="editor"?" ed":"";return`<li class="${on?"":"off"}" data-id="${u.id}"><span class="n">${esc(u.name)}${u.exp?` <small class="${u.exp<todayS()?"bad":""}">${u.exp<todayS()?"· scaduto il ":"· scade il "}${fmtD(u.exp)}</small>`:""}</span><input class="dt" type="date" data-a="exp" value="${u.exp||""}" aria-label="Scadenza di ${esc(u.name)}" title="Scadenza (vuoto = mai)"><button class="role${rc}" data-a="role" type="button" title="Cambia ruolo">${RL[r]}</button><button class="sw" data-a="act" type="button" aria-pressed="${on}" aria-label="Attivo: ${esc(u.name)}">${on?"SI":"NO"}</button><button data-a="cp" type="button">Copia link</button><button data-a="wa" type="button">WhatsApp</button>${sc.btn}${sc.brd}<button class="x" data-a="del" type="button" aria-label="Elimina ${esc(u.name)}">✕</button>${sc.panel}</li>`}).join("")||`<li class="hint">Nessuna persona: aggiungi la prima qui sopra.</li>`;
 }
 $("#site").onclick=()=>{C.siteActive=C.siteActive===false;render();save()};
 $("#guest").onclick=()=>{C.guestActive=C.guestActive===false;render();save()};
 $("#msg").onchange=e=>{C.message=e.target.value.trim();save()};
+$("#feat").onclick=e=>{
+const b=e.target.closest("[data-f]");if(!b)return;
+if(!C.features)C.features={};
+C.features[b.dataset.f]=C.features[b.dataset.f]!==true;
+render();save();
+};
 function add(){
 const n=$("#nn").value.trim();if(!n)return;
 C.users.push({id:Math.random().toString(36).slice(2,8),name:n,active:true});
@@ -155,7 +184,7 @@ $("#list").onclick=async e=>{
 const b=e.target.closest("[data-a]");if(!b||b.dataset.a==="exp")return;
 const li=b.closest("li"),u=C.users.find(x=>x.id===li.dataset.id);if(!u)return;
 if(b.dataset.a==="act"){u.active=u.active===false;render();save()}
-else if(b.dataset.a==="role"){u.role=u.role==="editor"?"viewer":"editor";render();save()}
+else if(b.dataset.a==="role"){u.role=NEXT[roleOf(u)];render();save()}
 else if(b.dataset.a==="cv"){u.conv=u.conv!==true;render();save()}
 else if(b.dataset.a==="brd"){u.board=u.board!==true;render();save()}
 else if(b.dataset.a==="sch"){openId=openId===u.id?null:u.id;render()}

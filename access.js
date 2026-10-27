@@ -1,8 +1,25 @@
 /* Controllo accessi: legge access.json (gestito da admin.html) e blocca chi è disattivato.
-   Chi ha il token salvato (l'amministratore sul PC) non viene mai bloccato. */
+   Chi ha il token salvato (l'amministratore sul PC) non viene mai bloccato.
+
+   Livelli: admin (token) > subadmin > editor (Gestore) > viewer (Solo vista)
+
+   Variabili esposte al resto del sito:
+   - volleyLevel         "admin" | "subadmin" | "editor" | "viewer"
+   - volleyRole          "admin" | "editor" | "viewer"  (il Sotto-admin conta come "editor",
+                         così il codice esistente continua a funzionare)
+   - volleyIsSub         true se è un Sotto-admin
+   - volleyCanSeeDrafts  può vedere gli schemi con status "draft" (bozze)
+   - volleyCanPublish    può trasformare una bozza in "published"
+   - volleyFeatures      oggetto "features" di access.json
+*/
 (function () {
   var m = location.hostname.match(/^([^.]+)\.github\.io$/), repo = location.pathname.split("/")[1];
   window.volleyRole = "admin";
+  window.volleyLevel = "admin";
+  window.volleyIsSub = false;
+  window.volleyCanSeeDrafts = true;
+  window.volleyCanPublish = true;
+  window.volleyFeatures = {};
   if (!m || !repo) return;
   var ls = function (k, v) {
     try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {}
@@ -10,6 +27,9 @@
   };
   if (ls("volley-token")) return;
   window.volleyRole = "viewer";
+  window.volleyLevel = "viewer";
+  window.volleyCanSeeDrafts = false;
+  window.volleyCanPublish = false;
 
   var q = new URLSearchParams(location.search).get("u");
   if (q) ls("volley-u", q);
@@ -42,18 +62,29 @@
     };
     document.body ? go() : document.addEventListener("DOMContentLoaded", go);
   }
-  function roleOf(c) {
+  function levelOf(c) {
     if (!c) return "editor"; // nessuna configurazione: comportamento di prima
     if (!code) return "viewer";
     var u = (c.users || []).filter(function (x) { return x.id === code; })[0];
-    return u && u.role === "editor" ? "editor" : "viewer";
+    if (!u) return "viewer";
+    if (u.role === "subadmin") return "subadmin";
+    return u.role === "editor" ? "editor" : "viewer";
   }
   function finish(cfg, fresh) {
     if (done) return;
     done = true;
     if (fresh) ls("volley-acc", cfg ? JSON.stringify(cfg) : null);
     var uu = cfg && code ? (cfg.users || []).filter(function (x) { return x.id === code; })[0] : null;
-    window.volleyRole = roleOf(cfg);
+
+    var lvl = levelOf(cfg), f = (cfg && cfg.features) || {};
+    window.volleyLevel = lvl;
+    window.volleyIsSub = lvl === "subadmin";
+    window.volleyRole = lvl === "viewer" ? "viewer" : "editor";
+    window.volleyFeatures = f;
+    // Bozze e pubblicazione: sempre al Sotto-admin; al Gestore solo se attivato dall'admin
+    window.volleyCanSeeDrafts = lvl === "subadmin" || (lvl === "editor" && f.gestoreDrafts === true);
+    window.volleyCanPublish = lvl === "subadmin" || (lvl === "editor" && f.gestorePublish === true);
+
     window.volleyBoard = window.volleyRole !== "viewer" || !!(uu && uu.board === true);
     window.volleyConv = !!(uu && uu.conv === true);
     window.volleyAllowed = uu && Array.isArray(uu.schemes) && window.volleyRole === "viewer" ? uu.schemes : null;

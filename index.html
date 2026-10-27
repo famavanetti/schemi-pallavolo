@@ -115,15 +115,20 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 @media(min-width:1100px){.sl{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .sc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:8px}
 .sc.warn{border-color:var(--warn)}
+.sc.draft{border-style:dashed;border-color:var(--sel)}
 .sc .op{display:block;text-align:left;border:0;background:none;padding:0;width:100%}
 .sc .op svg{margin-bottom:6px;background:#2f5d45}
 .sc .op strong{display:block;font-size:16px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sc small{display:block;font-size:12px;line-height:1.3;color:var(--muted)}
 .sc small.bad{color:var(--warn);font-weight:600}.sc small.good{color:var(--ok)}
+.sc small.dr{color:var(--sel);font-weight:600}
 .acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:auto}
 .acts button{padding:7px 6px;min-width:0}
 .acts .pri{grid-column:1/-1;background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+.acts .pub{grid-column:1/-1;background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
 button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
+#draftNote{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:2px dashed var(--sel);border-radius:8px;padding:8px 10px;margin:0 0 10px;color:var(--ink);font-size:14px}
+#draftNote span{flex:1 1 200px}
 #home .head{margin-bottom:12px}
 .nav{display:flex;align-items:center;gap:6px;margin-bottom:10px}
 .nav .sp{flex:1}
@@ -156,7 +161,8 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 <section class="card">
 <div class="nav"><button id="back" type="button">← Schemi</button><span class="sp"></span><a class="cls" href="classifica.html">🏆 Classifica</a><span class="sp"></span>
 <div class="menu"><button id="more" type="button" aria-label="Altre azioni" aria-haspopup="true" aria-expanded="false">⋯</button>
-<div class="pop" id="pop" hidden><button id="dup" type="button">⧉ Duplica schema</button><button id="del" type="button" class="x">✕ Elimina schema</button></div></div></div>
+<div class="pop" id="pop" hidden><button id="unpub" type="button" hidden>↩ Rimetti in bozza</button><button id="dup" type="button">⧉ Duplica schema</button><button id="del" type="button" class="x">✕ Elimina schema</button></div></div></div>
+<div id="draftNote" hidden><span>🔒 <b>Bozza</b>: per ora la vedono solo admin e Sotto-admin.</span><button id="pubB" type="button" class="primary" hidden>Pubblica</button></div>
 <div class="bar top">
 <input id="sname" aria-label="Nome dello schema" placeholder="Nome schema">
 <select id="skind" aria-label="Tipo di schema"></select>
@@ -229,6 +235,8 @@ const roleList=p=>[p.role,p.ro2,p.ro3].filter((r,i,a)=>r&&ROLES[r]&&a.indexOf(r)
 const eff=(p,c)=>{const r=c&&c.roles&&c.roles[p.id];return r&&ROLES[r]?r:p.role};
 const tag=(p,c)=>(p.num!==undefined&&p.num!==null&&String(p.num).trim()!=="")?esc(String(p.num).trim()):eff(p,c);
 const zoneOf=id=>{const c=cur();for(let z=1;z<=6;z++)if(c.pos[z]===id)return z;return 0};
+/* Bozze: uno schema con status "draft" lo vede solo chi ha volleyCanSeeDrafts (vedi access.js). Senza status = pubblicato. */
+const vis=s=>s.status!=="draft"||window.volleyCanSeeDrafts===true;
 
 let view="home";
 function miniSvg(pos,c){
@@ -241,21 +249,21 @@ g+=`<path transform="translate(${cx} ${cy}) scale(.5)" d="M-11,-30 Q0,-21 11,-30
 return`<svg viewBox="0 0 130 112" aria-hidden="true">${g}</svg>`;
 }
 function drawHome(){
-$("#list").innerHTML=S.schemes.map(s=>{
-const pos=s.pos||{},w=problems(pos,s);
-return`<div class="sc${w.length?" warn":""}" data-id="${s.id}"><button class="op" type="button" data-open="1" aria-label="Apri ${esc(s.name||"schema")}">${miniSvg(pos,s)}<strong>${esc(s.name||"Senza nome")}</strong><small>${KINDS[s.kind||"ric"]}</small><small class="${w.length?"bad":"good"}">${w.length?esc(w.join(" · ")):"Formazione valida"}</small></button><div class="acts"><button type="button" class="pri" data-open="1">Modifica</button><button type="button" data-dup="1" aria-label="Duplica" title="Duplica">⧉</button><button type="button" class="x" data-del="1" aria-label="Elimina" title="Elimina">✕</button></div></div>`;
+$("#list").innerHTML=S.schemes.filter(vis).map(s=>{
+const pos=s.pos||{},w=problems(pos,s),dr=s.status==="draft";
+return`<div class="sc${w.length?" warn":""}${dr?" draft":""}" data-id="${s.id}"><button class="op" type="button" data-open="1" aria-label="Apri ${esc(s.name||"schema")}">${miniSvg(pos,s)}<strong>${esc(s.name||"Senza nome")}</strong><small>${KINDS[s.kind||"ric"]}</small>${dr?`<small class="dr">🔒 Bozza · non visibile a tutti</small>`:""}<small class="${w.length?"bad":"good"}">${w.length?esc(w.join(" · ")):"Formazione valida"}</small></button><div class="acts">${dr&&window.volleyCanPublish?`<button type="button" class="pub" data-pub="1">Pubblica</button>`:""}<button type="button" class="pri" data-open="1">Modifica</button><button type="button" data-dup="1" aria-label="Duplica" title="Duplica">⧉</button><button type="button" class="x" data-del="1" aria-label="Elimina" title="Elimina">✕</button></div></div>`;
 }).join("")||`<p class="hint">Nessuno schema: creane uno con “Nuovo schema”.</p>`;
 }
 function route(){
 const m=location.hash.match(/^#s=(.+)$/);
 sel=null;tool=null;open=null;
-if(m&&S.schemes.some(s=>s.id===m[1])){S.cur=m[1];view="edit"}else view="home";
+if(m&&S.schemes.some(s=>s.id===m[1]&&vis(s))){S.cur=m[1];view="edit"}else view="home";
 render();window.scrollTo(0,0);
 }
 function go(h){if(location.hash===h||(!location.hash&&!h))route();else location.hash=h}
 function dupScheme(id,openIt){
 const o=S.schemes.find(s=>s.id===id);if(!o)return;
-const n={id:uid(),name:(o.name||"Schema")+" copia",kind:o.kind||"ric",pos:{...o.pos},marks:JSON.parse(JSON.stringify(o.marks||{})),roles:{...(o.roles||{})}};
+const n={id:uid(),name:(o.name||"Schema")+" copia",kind:o.kind||"ric",pos:{...o.pos},marks:JSON.parse(JSON.stringify(o.marks||{})),roles:{...(o.roles||{})},status:window.volleyCanSeeDrafts?"draft":"published"};
 S.schemes.push(n);
 if(openIt)go("#s="+n.id);else render();
 }
@@ -266,11 +274,18 @@ S.schemes=S.schemes.filter(s=>s.id!==id);
 S.cur=(S.schemes[0]||{}).id;
 if(view==="edit")go("");else render();
 }
+function setStatus(id,st){
+const o=S.schemes.find(s=>s.id===id);if(!o)return;
+if(st==="published")delete o.status;else o.status=st;
+render();
+}
 function render(){
 const ed=view==="edit"&&S.schemes.length>0;
 $("#home").hidden=ed;$("#editor").hidden=!ed;
 if(!ed){drawHome();save();return}
 S.cur=cur().id;
+const isDr=cur().status==="draft",cp=window.volleyCanPublish===true;
+$("#draftNote").hidden=!isDr;$("#pubB").hidden=!(isDr&&cp);$("#unpub").hidden=isDr||!cp||!window.volleyCanSeeDrafts;
 $("#sname").value=cur().name;
 $("#skind").innerHTML=Object.keys(KINDS).map(k=>`<option value="${k}"${(cur().kind||"ric")===k?" selected":""}>${KINDS[k]}</option>`).join("");
 $("#rF").value=S.rules.minF;$("#rM").value=S.rules.minM;$("#rX").value=S.rules.maxMF;$("#rO").checked=S.rules.ord!==false;
@@ -407,7 +422,7 @@ box.innerHTML=`<h2>Invia su WhatsApp</h2>
 <p class="hint" style="margin:2px 0 10px">Scegli cosa inviare, controlla il testo (puoi modificarlo) e premi Invia: si apre WhatsApp e scegli tu la chat o il gruppo.</p>
 <div class="bar"><input id="waHead" placeholder="Titolo (facoltativo: se vuoto uso il nome dello schema)" value="${esc(waSt.head)}" aria-label="Titolo del messaggio"></div>
 <label class="ck" style="margin-bottom:6px"><input type="checkbox" id="waConv"${waSt.conv?" checked":""}> Elenco convocati (${waConvocati().length})</label>
-${S.schemes.map(s=>`<label class="ck" style="margin-bottom:6px"><input type="checkbox" data-ws="${s.id}"${waSt.sch.has(s.id)?" checked":""}> Schema: ${esc(s.name||"Senza nome")} <span class="st">${KINDS[s.kind||"ric"]}</span></label>`).join("")}
+${S.schemes.map(s=>`<label class="ck" style="margin-bottom:6px"><input type="checkbox" data-ws="${s.id}"${waSt.sch.has(s.id)?" checked":""}> Schema: ${esc(s.name||"Senza nome")} <span class="st">${KINDS[s.kind||"ric"]}${s.status==="draft"?" · bozza":""}</span></label>`).join("")}
 <label class="ck" style="margin:8px 0 6px"><input type="checkbox" id="waEmo"${waSt.emo?" checked":""}> Usa le emoji <span class="st">(se in WhatsApp compaiono dei “�”, lasciale spente oppure usa “Copia testo”)</span></label>
 <textarea id="waTxt" rows="11" aria-label="Anteprima del messaggio">${esc(waText())}</textarea>
 <div class="bar" style="margin-top:8px"><button type="button" id="waSend" class="wa-btn">Invia su WhatsApp</button><button type="button" id="waCopy">Copia testo</button><span class="st" id="waMsg" role="status" style="white-space:normal;align-self:center"></span></div>`;
@@ -483,12 +498,16 @@ $("#court").addEventListener("touchmove",e=>{if(drag&&!drag.empty)e.preventDefau
 $("#court").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){const g=e.target.closest("[data-z]");if(g){e.preventDefault();zoneClick(+g.dataset.z)}}});
 $("#list").addEventListener("click",e=>{
 const c=e.target.closest(".sc");if(!c)return;const id=c.dataset.id;
-if(e.target.closest("[data-del]"))delScheme(id);
+if(e.target.closest("[data-pub]"))setStatus(id,"published");
+else if(e.target.closest("[data-del]"))delScheme(id);
 else if(e.target.closest("[data-dup]"))dupScheme(id,false);
 else if(e.target.closest("[data-open]"))go("#s="+id);
 });
-$("#newS").addEventListener("click",()=>{const s={id:uid(),name:"Schema "+(S.schemes.length+1),kind:"ric",pos:{}};S.schemes.push(s);S.cur=s.id;go("#s="+s.id)});
+/* Nuovo schema: nasce come bozza se chi lo crea può vedere le bozze, altrimenti pubblicato (sennò lo perderebbe di vista) */
+$("#newS").addEventListener("click",()=>{const s={id:uid(),name:"Schema "+(S.schemes.length+1),kind:"ric",pos:{},status:window.volleyCanSeeDrafts?"draft":"published"};S.schemes.push(s);S.cur=s.id;go("#s="+s.id)});
 $("#back").addEventListener("click",()=>go(""));
+$("#pubB").addEventListener("click",()=>setStatus(S.cur,"published"));
+$("#unpub").addEventListener("click",()=>setStatus(S.cur,"draft"));
 $("#tools").addEventListener("click",e=>{const b=e.target.closest("[data-m]");if(!b)return;const k=b.dataset.m;if(k==="clear")cur().marks={};else tool=tool===k?null:k;sel=null;render()});
 $("#rots").addEventListener("click",e=>{
 const d=e.target.closest("[data-k]");if(!d)return;
@@ -644,6 +663,8 @@ want.forEach(e=>nav.appendChild(e));
 new MutationObserver(placeCls).observe($(".nav"),{childList:true});
 window.addEventListener("load",placeCls);
 window.addEventListener("hashchange",route);
+/* Quando access.js ha deciso il livello (bozze visibili o no), ridisegna */
+document.addEventListener("volleyrole",()=>route());
 route();
 sync();
 </script>
