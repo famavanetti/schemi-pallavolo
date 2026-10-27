@@ -9,7 +9,8 @@
    "name": "Daniele",
    "active": true,
    "role": "viewer",
-   "conv": true
+   "conv": true,
+   "board": true
   },
   {
    "id": "dvsxo7",
