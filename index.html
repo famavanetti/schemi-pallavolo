@@ -155,7 +155,7 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 <div class="wrap">
 <header>
 <h1>Schemi pallavolo mista</h1>
-<p>Ogni schema ha la sua pagina: aprilo per modificarlo, duplicarlo o eliminarlo. Si modifica dal computer; sul telefono i dati si aggiornano da soli.</p>
+<p>Ogni schema ha la sua pagina: aprilo per modificarlo, duplicarlo o eliminarlo. Le modifiche si sincronizzano da sole tra i dispositivi collegati.</p>
 <div class="bar" id="syncbar"><button id="syncBtn" type="button">⟳ Sincronizza</button><button id="syncKey" type="button" hidden>Collega salvataggio</button><span class="st" id="syncMsg" role="status" style="white-space:normal"></span></div>
 </header>
 <div id="home">
@@ -226,11 +226,21 @@ return{players:p,schemes:[sc],cur:sc.id,rules:{minF:2,minM:2,maxMF:2,v:2}};
 function mig(o){o.players.forEach(p=>{if(OLD[p.role])p.role=OLD[p.role];if(!ROLES[p.role])p.role="B";["ro2","ro3"].forEach(k=>{if(OLD[p[k]])p[k]=OLD[p[k]];if(!ROLES[p[k]])p[k]=""})});return o}
 function load(){try{const v=localStorage.getItem("volley-v1");if(v){const o=JSON.parse(v);if(o&&o.players&&Array.isArray(o.schemes)){if(!o.rules||o.rules.v!==2)o.rules={minF:2,minM:2,maxMF:2,v:2};return mig(o)}}}catch(e){}return seed()}
 const snap=()=>JSON.stringify(S,(k,v)=>k==="updated"?undefined:v);
+/* Sincronizzazione per singolo elemento: ogni giocatore/schema ha "u" (ultima modifica); le eliminazioni sono in S.del */
+let prev={};
+const itemJ=o=>JSON.stringify(o,(k,v)=>k==="u"?undefined:v);
+function baseline(){prev={};[...S.players,...S.schemes].forEach(o=>prev[o.id]=itemJ(o))}
+function stamp(){
+const now=Date.now(),nw={};S.del=S.del||{};
+[...S.players,...S.schemes].forEach(o=>{const j=itemJ(o);nw[o.id]=j;if(prev[o.id]!==j)o.u=now});
+for(const id in prev)if(!(id in nw))S.del[id]=now;
+prev=nw;
+}
 let lastJ=null,tm=null;
 function save(){
-if(lastJ===null)lastJ=snap();
-else{const j=snap();if(j!==lastJ){lastJ=j;S.updated=Date.now();clearTimeout(tm);tm=setTimeout(()=>{tm=null;if(tok())sync()},1500);
-if(API)sm(RO?"Sul telefono le modifiche restano solo qui e verranno sostituite dai dati del PC: modifica dal computer.":tok()?"Modifiche in attesa di salvataggio online…":"Modifiche solo su questo dispositivo.")}}
+if(lastJ===null){baseline();lastJ=snap()}
+else{stamp();const j=snap();if(j!==lastJ){lastJ=j;S.updated=Date.now();clearTimeout(tm);tm=setTimeout(()=>{tm=null;if(tok())sync()},1500);
+if(API)sm(tok()?"Modifiche in attesa di salvataggio online…":"Senza token le modifiche restano solo su questo dispositivo.")}}
 try{localStorage.setItem("volley-v1",JSON.stringify(S))}catch(e){}
 }
 let S=load(),sel=null;
@@ -608,9 +618,7 @@ $("#sroles").addEventListener("change",e=>{const id=e.target.dataset.sr;if(!id)r
 [["rF","minF"],["rM","minM"],["rX","maxMF"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{S.rules[k]=Math.max(0,+e.target.value||0);render()}));
 const REPO=(()=>{const m=location.hostname.match(/^([^.]+)\.github\.io$/),r=location.pathname.split("/")[1];return m&&r?{o:m[1],r:r}:null})();
 const API=REPO?"https://api.github.com/repos/"+REPO.o+"/"+REPO.r+"/contents/volley-data.json":null;
-const RO=matchMedia("(pointer:coarse)").matches;
-if(RO){try{localStorage.removeItem("volley-token")}catch(e){}}
-const tok=()=>{if(RO)return"";try{return localStorage.getItem("volley-token")||""}catch(e){return""}};
+const tok=()=>{try{return localStorage.getItem("volley-token")||""}catch(e){return""}};
 const sm=t=>{$("#syncMsg").textContent=t};
 let sha=null,busy=false,again=false;
 const hd=w=>{const h={Accept:"application/vnd.github+json"};if(tok())h.Authorization="Bearer "+tok();if(w)h["Content-Type"]="application/json";return h};
@@ -631,24 +639,47 @@ const r=await fetch(API,{method:"PUT",headers:hd(1),body:JSON.stringify(b),keepa
 if(!r.ok)throw r.status;
 const j=await r.json();sha=j.content.sha;
 }
-function adopt(o){S=mig(o);if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};if(!S.schemes.some(x=>x.id===S.cur))S.cur=(S.schemes[0]||{}).id;lastJ=snap();route()}
+const ora=()=>new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
+/* cj: confronto "logico" tra due stati (ignora ordine delle chiavi, cursore e timestamp globale) */
+const cj=o=>JSON.stringify(o,(k,v)=>k==="cur"||k==="updated"?undefined:(v&&typeof v==="object"&&!Array.isArray(v)?Object.keys(v).sort().reduce((r,x)=>(r[x]=v[x],r),{}):v));
+function mergeList(a,b,del){
+const m=new Map();
+[...b,...a].forEach(x=>{const y=m.get(x.id);if(!y||(x.u||0)>(y.u||0))m.set(x.id,x)});
+return [...m.values()].filter(x=>!(del[x.id]&&del[x.id]>=(x.u||0)));
+}
+function merge(L,R){
+const del={};
+[L.del||{},R.del||{}].forEach(d=>{for(const id in d)del[id]=Math.max(del[id]||0,d[id])});
+const M=JSON.parse(JSON.stringify((L.updated||0)>(R.updated||0)?L:R));
+M.players=JSON.parse(JSON.stringify(mergeList(L.players,R.players,del)));
+M.schemes=JSON.parse(JSON.stringify(mergeList(L.schemes,R.schemes,del)));
+M.del=del;M.updated=Math.max(L.updated||0,R.updated||0);M.cur=L.cur;
+return M;
+}
+function adopt(o){S=mig(o);if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};if(!S.schemes.some(x=>x.id===S.cur))S.cur=(S.schemes[0]||{}).id;baseline();lastJ=snap();route()}
+let retry=0;
 async function sync(){
 if(!API)return;
 if(busy){again=true;return}
 busy=true;sm("Sincronizzazione…");
 try{
-const rem=await pull(),lu=S.updated||0,ru=rem?(rem.updated||0):0;
-if(RO){
-const seen=+(localStorage.getItem("volley-seen")||0);
+const rem=await pull();
+if(!tok()){
+const ru=rem?(rem.updated||0):0,seen=+(localStorage.getItem("volley-seen")||0);
 if(rem&&ru>seen){adopt(rem);try{localStorage.setItem("volley-seen",ru)}catch(e){}sm("Dati aggiornati dal PC ✓")}
 else sm(rem?"Già aggiornato ✓":"Nessun dato online: salvali prima dal computer.");
-}else if(rem&&ru>lu){adopt(rem);sm("Dati aggiornati dal salvataggio online ✓")}
-else if(!rem||lu>ru){
-if(!tok())sm("Le modifiche sono solo su questo dispositivo.");
-else{await push();sm("Salvato online ✓ "+new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}))}
-}else sm("Già aggiornato ✓");
+}else if(!rem){await push();sm("Salvato online ✓ "+ora())}
+else{
+const M=merge(S,rem),toPush=cj(M)!==cj(rem),toAdopt=cj(M)!==cj(S);
+if(toPush)M.updated=Date.now();
+if(toAdopt)adopt(M);else if(toPush)S.updated=M.updated;
+if(toPush){await push();sm("Sincronizzato e salvato online ✓ "+ora())}
+else sm(toAdopt?"Dati aggiornati dal salvataggio online ✓":"Già aggiornato ✓");
+}
+retry=0;
 }catch(e){
-sm(e===401?"Token non valido o scaduto: premi “Collega salvataggio”.":(e===409||e===422)?"Un altro dispositivo ha salvato nel frattempo: premi di nuovo Sincronizza.":(e===403||e===404)?"Salvataggio non riuscito: controlla il token e i suoi permessi (Contents: lettura e scrittura).":"Nessuna connessione o servizio non raggiungibile.");
+if((e===409||e===422)&&retry++<2){busy=false;return sync()}
+sm(navigator.onLine===false?"Sei offline: le modifiche restano sul dispositivo e si sincronizzeranno appena torna la linea.":e===401?"Token non valido o scaduto: premi “Collega salvataggio”.":(e===403||e===404)?"Salvataggio non riuscito: controlla il token e i suoi permessi (Contents: lettura e scrittura).":"Nessuna connessione o servizio non raggiungibile.");
 }
 busy=false;
 if(again){again=false;sync()}
@@ -662,8 +693,9 @@ sync();
 });
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync();else if(tm&&tok()){clearTimeout(tm);tm=null;sync()}});
 window.addEventListener("pagehide",()=>{if(tm&&tok()){clearTimeout(tm);tm=null;sync()}});
+window.addEventListener("online",()=>sync());
+setInterval(()=>{if(!document.hidden&&navigator.onLine)sync()},tok()?120000:300000);
 if(!API)$("#syncbar").style.display="none";
-if(RO)$("#syncKey").style.display="none";
 /* "Collega salvataggio" solo per l'amministratore (chi ha già il token, vedi access.js) */
 if(window.volleyRole==="admin")$("#syncKey").hidden=false;
 /* Pulsante Classifica: sempre a metà tra "← Schemi" e "Lavagna" (il pulsante Lavagna lo aggiunge lavagna.js) */
