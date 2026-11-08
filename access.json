@@ -3,7 +3,8 @@
  "guestActive": false,
  "message": "",
  "features": {
-  "gestoreDrafts": true
+  "gestoreDrafts": true,
+  "gestorePublish": true
  },
  "users": [
   {
