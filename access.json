@@ -2,7 +2,9 @@
  "siteActive": true,
  "guestActive": false,
  "message": "",
- "features": {},
+ "features": {
+  "gestoreDrafts": true
+ },
  "users": [
   {
    "id": "de1nbg",
