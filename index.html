@@ -254,20 +254,23 @@ function mig(o){o.players.forEach(p=>{if(OLD[p.role])p.role=OLD[p.role];if(!ROLE
 function load(){try{const v=localStorage.getItem("volley-v1");if(v){const o=JSON.parse(v);if(o&&o.players&&Array.isArray(o.schemes)){if(!o.rules||o.rules.v!==2)o.rules={minF:2,minM:2,maxMF:2,v:2};return mig(o)}}}catch(e){}return seed()}
 const snap=()=>JSON.stringify(S,(k,v)=>k==="updated"?undefined:v);
 /* Sincronizzazione per singolo elemento: ogni giocatore/schema ha "u" (ultima modifica); le eliminazioni sono in S.del */
-let prev={};
+let prev={},prevR="",prevB="";
 const itemJ=o=>JSON.stringify(o,(k,v)=>k==="u"?undefined:v);
-function baseline(){prev={};[...S.players,...S.schemes].forEach(o=>prev[o.id]=itemJ(o))}
+const rj0=()=>JSON.stringify(S.rules||null),bj0=()=>JSON.stringify(S.board===undefined?null:S.board);
+function baseline(){prev={};[...S.players,...S.schemes].forEach(o=>prev[o.id]=itemJ(o));prevR=rj0();prevB=bj0()}
 function stamp(){
 const now=Date.now(),nw={};S.del=S.del||{};
 [...S.players,...S.schemes].forEach(o=>{const j=itemJ(o);nw[o.id]=j;if(prev[o.id]!==j)o.u=now});
 for(const id in prev)if(!(id in nw))S.del[id]=now;
 prev=nw;
+const r=rj0(),bb=bj0();
+if(r!==prevR){S.ru=now;prevR=r}
+if(bb!==prevB){S.bu=now;prevB=bb}
 }
 let lastJ=null,tm=null;
 function save(){
 if(lastJ===null){baseline();lastJ=snap()}
-else{stamp();const j=snap();if(j!==lastJ){lastJ=j;S.updated=Date.now();clearTimeout(tm);tm=setTimeout(()=>{tm=null;if(tok())sync()},1500);
-if(API)sm(tok()?"Modifiche in attesa di salvataggio online…":"Senza token le modifiche restano solo su questo dispositivo.")}}
+else{stamp();const j=snap();if(j!==lastJ){lastJ=j;S.updated=Date.now();clearTimeout(tm);tm=setTimeout(()=>{tm=null;pushDirty()},800)}}
 try{localStorage.setItem("volley-v1",JSON.stringify(S))}catch(e){}
 }
 let S=load(),sel=null;
@@ -648,88 +651,137 @@ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeT
 });
 $("#sroles").addEventListener("change",e=>{const id=e.target.dataset.sr;if(!id)return;const c=cur(),p=pl(id);c.roles=c.roles||{};if(e.target.value===p.role)delete c.roles[id];else c.roles[id]=e.target.value;render()});
 [["rF","minF"],["rM","minM"],["rX","maxMF"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{S.rules[k]=Math.max(0,+e.target.value||0);render()}));
-const REPO=(()=>{const m=location.hostname.match(/^([^.]+)\.github\.io$/),r=location.pathname.split("/")[1];return m&&r?{o:m[1],r:r}:null})();
-const API=REPO?"https://api.github.com/repos/"+REPO.o+"/"+REPO.r+"/contents/volley-data.json":null;
-const tok=()=>{try{return localStorage.getItem("volley-token")||""}catch(e){return""}};
+/* ===== Sincronizzazione online con Firebase (stesso progetto del referto basket) =====
+   Ogni giocatore/schema è un documento in "volley_items"; regole e lavagna stanno in "volley_meta/main".
+   Si legge sempre; si scrive solo dopo "Collega salvataggio" (password staff). Offline: i dati restano sul dispositivo e partono da soli. */
+const FB_CONFIG={apiKey:"AIzaSyAh_lrpArqIlOo6qdyVDTjpnD48eHeJlSw",authDomain:"volley-48ad6.firebaseapp.com",projectId:"volley-48ad6",storageBucket:"volley-48ad6.firebasestorage.app",messagingSenderId:"714464218805",appId:"1:714464218805:web:23994b1b878f5138f338fc",email:""};
+const FB={ready:false,db:null,user:null,err:"",t:"",pend:false,seed:false,P:null,meta:{}};
+const RM={};
 const sm=t=>{$("#syncMsg").textContent=t};
-let sha=null,busy=false,again=false;
-const hd=w=>{const h={Accept:"application/vnd.github+json"};if(tok())h.Authorization="Bearer "+tok();if(w)h["Content-Type"]="application/json";return h};
-async function pull(){
-const r=await fetch(API+"?t="+Date.now(),{headers:hd(),cache:"no-store"});
-if(r.status===404){sha=null;return null}
-if(!r.ok)throw r.status;
-const j=await r.json();sha=j.sha;
-const o=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\s/g,"")))));
-if(!o||!Array.isArray(o.players)||!Array.isArray(o.schemes))throw 0;
-return o;
-}
-async function push(){
-if(!S.updated){S.updated=Date.now();save()}
-const b={message:"Aggiornamento dati",content:btoa(unescape(encodeURIComponent(JSON.stringify(S))))};
-if(sha)b.sha=sha;
-const r=await fetch(API,{method:"PUT",headers:hd(1),body:JSON.stringify(b),keepalive:true});
-if(!r.ok)throw r.status;
-const j=await r.json();sha=j.content.sha;
-}
 const ora=()=>new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
-/* cj: confronto "logico" tra due stati (ignora ordine delle chiavi, cursore e timestamp globale) */
-const cj=o=>JSON.stringify(o,(k,v)=>k==="cur"||k==="updated"?undefined:(v&&typeof v==="object"&&!Array.isArray(v)?Object.keys(v).sort().reduce((r,x)=>(r[x]=v[x],r),{}):v));
-function mergeList(a,b,del){
-const m=new Map();
-[...b,...a].forEach(x=>{const y=m.get(x.id);if(!y||(x.u||0)>(y.u||0))m.set(x.id,x)});
-return [...m.values()].filter(x=>!(del[x.id]&&del[x.id]>=(x.u||0)));
+function fbStat(){
+if(FB.err)return sm(FB.err);
+if(!FB.ready)return sm(navigator.onLine===false?"Sei offline: le modifiche restano sul dispositivo.":"Connessione…");
+if(navigator.onLine===false)return sm("Sei offline: le modifiche restano sul dispositivo e partono da sole appena torna la linea."+(FB.user?"":" Per inviarle serve “Collega salvataggio”."));
+if(!FB.user)return sm("Sola lettura: per inviare le modifiche premi “Collega salvataggio”."+(FB.t?" Aggiornato alle "+FB.t+".":""));
+sm(FB.pend?"Invio modifiche…":"Sincronizzato ✓ "+FB.t);
 }
-function merge(L,R){
-const del={};
-[L.del||{},R.del||{}].forEach(d=>{for(const id in d)del[id]=Math.max(del[id]||0,d[id])});
-const M=JSON.parse(JSON.stringify((L.updated||0)>(R.updated||0)?L:R));
-M.players=JSON.parse(JSON.stringify(mergeList(L.players,R.players,del)));
-M.schemes=JSON.parse(JSON.stringify(mergeList(L.schemes,R.schemes,del)));
-M.del=del;M.updated=Math.max(L.updated||0,R.updated||0);M.cur=L.cur;
-return M;
+function updKey(){const b=$("#syncKey");b.textContent=FB.user?"☁ Salvataggio collegato":"Collega salvataggio";b.hidden=!(FB.user||(window.volleyRole&&window.volleyRole!=="viewer"))}
+const fbLoad=src=>new Promise((ok,ko)=>{const t=document.createElement("script");t.src=src;t.crossOrigin="anonymous";t.onload=ok;t.onerror=()=>ko(new Error("load"));document.head.appendChild(t)});
+function fbErr(e){
+const c=e&&e.code||"";
+FB.err=c==="permission-denied"?"Firebase: mancano le regole per la pallavolo (volley_items e volley_meta). Aggiungile nella console Firebase → Firestore → Regole.":(navigator.onLine===false?"":"Servizio non raggiungibile: riprovo appena possibile.");
+fbStat();
 }
-function adopt(o){S=mig(o);if(!S.rules)S.rules={minF:2,minM:2,maxMF:2,v:2};if(!S.schemes.some(x=>x.id===S.cur))S.cur=(S.schemes[0]||{}).id;baseline();lastJ=snap();route()}
-let retry=0;
-async function sync(){
-if(!API)return;
-if(busy){again=true;return}
-busy=true;sm("Sincronizzazione…");
-try{
-const rem=await pull();
-if(!tok()){
-const ru=rem?(rem.updated||0):0,seen=+(localStorage.getItem("volley-seen")||0);
-if(rem&&ru>seen){adopt(rem);try{localStorage.setItem("volley-seen",ru)}catch(e){}sm("Dati scaricati ✓ · SOLA LETTURA: manca il token, qui le modifiche non vengono salvate online.")}
-else sm(rem?"Già aggiornato ✓ · SOLA LETTURA: manca il token, qui le modifiche non vengono salvate online.":"Nessun dato online: salvali prima dal computer.");
-}else if(!rem){await push();sm("Salvato online ✓ "+ora())}
-else{
-const M=merge(S,rem),toPush=cj(M)!==cj(rem),toAdopt=cj(M)!==cj(S);
-if(toPush)M.updated=Date.now();
-if(toAdopt)adopt(M);else if(toPush)S.updated=M.updated;
-if(toPush){await push();sm("Sincronizzato e salvato online ✓ "+ora())}
-else sm(toAdopt?"Dati aggiornati dal salvataggio online ✓":"Già aggiornato ✓");
+function initFb(){
+if(FB.P)return FB.P;
+const b="https://www.gstatic.com/firebasejs/10.12.2/";
+FB.P=fbLoad(b+"firebase-app-compat.js").then(()=>fbLoad(b+"firebase-auth-compat.js")).then(()=>fbLoad(b+"firebase-firestore-compat.js")).then(()=>{
+firebase.initializeApp(FB_CONFIG);FB.db=firebase.firestore();
+try{FB.db.enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(e){}
+firebase.auth().onAuthStateChanged(u=>{FB.user=u;updKey();fbStat();if(u)pushDirty()});
+FB.db.collection("volley_items").onSnapshot({includeMetadataChanges:true},onItems,fbErr);
+FB.db.doc("volley_meta/main").onSnapshot({includeMetadataChanges:true},onMeta,fbErr);
+FB.ready=true;FB.err="";fbStat();
+}).catch(e=>{FB.P=null;fbErr(e)});
+return FB.P;
 }
-retry=0;
-}catch(e){
-if((e===409||e===422)&&retry++<2){busy=false;return sync()}
-sm(navigator.onLine===false?"Sei offline: le modifiche restano sul dispositivo e si sincronizzeranno appena torna la linea.":e===401?"Token non valido o scaduto: premi “Collega salvataggio”.":(e===403||e===404)?"Salvataggio non riuscito: controlla il token e i suoi permessi (Contents: lettura e scrittura).":"Nessuna connessione o servizio non raggiungibile.");
+let rt=null;
+function refreshSoon(n){
+clearTimeout(rt);
+rt=setTimeout(()=>{
+const a=document.activeElement,typing=a&&(a.tagName==="TEXTAREA"||(a.tagName==="INPUT"&&/^(text|number|search)$/.test(a.type)));
+if((drag||typing)&&(n||0)<10){refreshSoon((n||0)+1);return}
+const m=location.hash.match(/^#s=(.+)$/);
+if(m&&!S.schemes.some(x=>x.id===m[1]))go("");else render();
+},300);
 }
-busy=false;
-if(again){again=false;sync()}
+function applied(){
+mig(S);
+if(!S.schemes.some(x=>x.id===S.cur))S.cur=(S.schemes[0]||{}).id;
+baseline();lastJ=snap();
+try{localStorage.setItem("volley-v1",JSON.stringify(S))}catch(e){}
+refreshSoon();
 }
-$("#syncBtn").addEventListener("click",sync);
-$("#syncKey").addEventListener("click",()=>{
-const t=prompt("Incolla il token GitHub (lascia vuoto per scollegare):",tok());
-if(t===null)return;
-try{localStorage.setItem("volley-token",t.trim())}catch(e){}
-sync();
+function onItems(s){
+const md=s.metadata;let ch=false;S.del=S.del||{};
+s.docChanges().forEach(c=>{
+if(c.type==="removed")return;
+const id=c.doc.id,v=c.doc.data(),u=v.u||0;RM[id]=u;
+if(v.del){
+S.del[id]=Math.max(S.del[id]||0,u);
+["players","schemes"].forEach(k=>{const i=S[k].findIndex(x=>x.id===id);if(i>=0&&(S[k][i].u||0)<=u){S[k].splice(i,1);ch=true}});
+return;
+}
+let o;try{o=JSON.parse(v.j)}catch(e){return}
+o.u=u;
+const k=v.t==="p"?"players":"schemes",a=S[k],i=a.findIndex(x=>x.id===id);
+if(i<0&&(S.del[id]||0)>=u)return;
+if(i>=0&&(a[i].u||0)>=u)return;
+if(i>=0)a[i]=o;else a.push(o);
+if(S.del[id]&&S.del[id]<u)delete S.del[id];
+ch=true;
 });
-document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync();else if(tm&&tok()){clearTimeout(tm);tm=null;sync()}});
-window.addEventListener("pagehide",()=>{if(tm&&tok()){clearTimeout(tm);tm=null;sync()}});
-window.addEventListener("online",()=>sync());
-setInterval(()=>{if(!document.hidden&&navigator.onLine)sync()},tok()?120000:300000);
-if(!API)$("#syncbar").style.display="none";
-/* "Collega salvataggio" solo per l'amministratore (chi ha già il token, vedi access.js) */
-if(window.volleyRole==="admin")$("#syncKey").hidden=false;
+if(!md.fromCache){
+FB.t=ora();FB.seed=s.empty;FB.err="";
+if(!s.empty){
+const keep=o=>o.u||RM[o.id]!==undefined,np=S.players.filter(keep),ns=S.schemes.filter(keep);
+if(np.length!==S.players.length||ns.length!==S.schemes.length){S.players=np;S.schemes=ns;ch=true}
+}
+}
+FB.pend=md.hasPendingWrites;
+if(ch)applied();
+pushDirty();fbStat();
+}
+function onMeta(d){
+const m=d.exists?d.data():null;FB.meta=m||{};let ch=false;
+if(m){
+if((m.ru||0)>(S.ru||0)){try{S.rules=JSON.parse(m.rj);S.ru=m.ru;ch=true}catch(e){}}
+if((m.bu||0)>(S.bu||0)){try{const bd=JSON.parse(m.bj);if(bd===null)delete S.board;else S.board=bd;S.bu=m.bu;ch=true}catch(e){}}
+}
+if(ch)applied();
+pushDirty();
+}
+function pushDirty(){
+const db=FB.db;if(!db||!FB.user)return;
+const bt=db.batch(),col=db.collection("volley_items"),now=Date.now();let n=0;
+S.del=S.del||{};
+[["p",S.players],["s",S.schemes]].forEach(([t,a])=>a.forEach(o=>{
+if(!o.u){if(RM[o.id]!==undefined||!FB.seed)return;o.u=now}
+if(o.u>(RM[o.id]||0)){bt.set(col.doc(o.id),{t:t,j:JSON.stringify(o),u:o.u,del:0});n++}
+}));
+for(const id in S.del)if(S.del[id]>(RM[id]||0)){bt.set(col.doc(id),{t:"x",j:"",u:S.del[id],del:1});n++}
+if(!S.ru&&FB.seed)S.ru=now;
+if(!S.bu&&FB.seed&&S.board!==undefined)S.bu=now;
+const mm={};
+if(S.ru&&S.ru>(FB.meta.ru||0)){mm.rj=rj0();mm.ru=S.ru}
+if(S.bu&&S.bu>(FB.meta.bu||0)){const j=bj0();if(j.length<900000){mm.bj=j;mm.bu=S.bu}}
+if(Object.keys(mm).length){bt.set(db.doc("volley_meta/main"),mm,{merge:true});n++}
+if(n)bt.commit().catch(fbErr);
+}
+$("#syncBtn").addEventListener("click",async()=>{
+sm("Sincronizzazione…");await initFb();if(!FB.db)return;
+try{await FB.db.enableNetwork()}catch(e){}
+pushDirty();
+try{await Promise.race([FB.db.waitForPendingWrites(),new Promise((_,r)=>setTimeout(r,8000))]);FB.pend=false;FB.t=ora()}catch(e){}
+fbStat();
+});
+$("#syncKey").addEventListener("click",async()=>{
+await initFb();if(!FB.db)return;
+if(FB.user){if(confirm("Scollegare il salvataggio online da questo dispositivo?"))firebase.auth().signOut();return}
+let em="";try{em=FB_CONFIG.email||localStorage.getItem("volley-fb-email")||""}catch(e){}
+if(!em)em=(prompt("Email dell’utente staff creato in Firebase (Authentication → Utenti):")||"").trim();
+if(!em)return;
+const pw=prompt("Password dell’utente staff. Si chiede una sola volta su questo dispositivo:");
+if(!pw)return;
+try{await firebase.auth().signInWithEmailAndPassword(em,pw);try{localStorage.setItem("volley-fb-email",em)}catch(e){}}catch(e){alert("Email o password errata, oppure utente non creato in Firebase (Authentication → Utenti).")}
+});
+addEventListener("online",()=>{initFb();pushDirty();fbStat()});
+addEventListener("offline",fbStat);
+document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(tm);tm=null;pushDirty()}else{initFb();fbStat()}});
+addEventListener("pagehide",()=>{clearTimeout(tm);tm=null;pushDirty()});
+document.addEventListener("volleyrole",updKey);
+updKey();initFb();
 /* Pulsante Classifica: sempre a metà tra "← Schemi" e "Lavagna" (il pulsante Lavagna lo aggiunge lavagna.js) */
 function placeCls(){
 const nav=$(".nav"),cls=nav&&nav.querySelector(".cls"),back=$("#back"),menu=nav&&nav.querySelector(".menu"),sps=nav?nav.querySelectorAll(".sp"):[];
@@ -746,7 +798,6 @@ window.addEventListener("hashchange",route);
 /* Quando access.js ha deciso il livello (bozze visibili o no), ridisegna */
 document.addEventListener("volleyrole",()=>route());
 route();
-sync();
 </script>
      <script src="lavagna.js"></script>
      <script src="pwa.js"></script>
