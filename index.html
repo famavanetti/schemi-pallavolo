@@ -698,8 +698,8 @@ try{
 const rem=await pull();
 if(!tok()){
 const ru=rem?(rem.updated||0):0,seen=+(localStorage.getItem("volley-seen")||0);
-if(rem&&ru>seen){adopt(rem);try{localStorage.setItem("volley-seen",ru)}catch(e){}sm("Dati aggiornati dal PC ✓")}
-else sm(rem?"Già aggiornato ✓":"Nessun dato online: salvali prima dal computer.");
+if(rem&&ru>seen){adopt(rem);try{localStorage.setItem("volley-seen",ru)}catch(e){}sm("Dati scaricati ✓ · SOLA LETTURA: manca il token, qui le modifiche non vengono salvate online.")}
+else sm(rem?"Già aggiornato ✓ · SOLA LETTURA: manca il token, qui le modifiche non vengono salvate online.":"Nessun dato online: salvali prima dal computer.");
 }else if(!rem){await push();sm("Salvato online ✓ "+ora())}
 else{
 const M=merge(S,rem),toPush=cj(M)!==cj(rem),toAdopt=cj(M)!==cj(S);
