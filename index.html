@@ -175,14 +175,21 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 .bc.on{box-shadow:0 0 0 2px var(--sel)}
 .bc svg{width:36px;margin:0 auto;border-radius:0}
 .bc small{display:block;font-size:11px;line-height:1.2;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ===== Intestazione compatta + stato sincronizzazione ===== */
+.wrap{padding:10px 16px 46px}
+header h1{font-size:26px;line-height:1.1}
+header .bar{margin:4px 0 8px}
+#fbBadge{position:fixed;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:50;font:600 11px "Barlow",system-ui,sans-serif;background:#0b1233e6;color:#eef1fb;border:1px solid #2a3570;border-radius:12px;padding:3px 10px}
+#fbBadge[data-s="err"]{color:#ff8787;border-color:#c92a2a}
+#fbBadge[data-s="off"]{color:#ffd43b;border-color:#e0a800}
+.adm{display:inline-block;text-decoration:none;font:inherit;font-weight:600;background:#e8edf2;color:#0b1020;border-radius:8px;padding:6px 11px}
 </style>
 </head>
 <body>
 <div class="wrap">
-<header>
+<header id="top">
 <h1>Schemi pallavolo mista</h1>
-<p>Ogni schema ha la sua pagina: aprilo per modificarlo, duplicarlo o eliminarlo. Le modifiche si sincronizzano da sole tra i dispositivi collegati.</p>
-<div class="bar" id="syncbar"><button id="syncBtn" type="button">⟳ Sincronizza</button><button id="syncKey" type="button" hidden>Collega salvataggio</button><span class="st" id="syncMsg" role="status" style="white-space:normal"></span></div>
+<div class="bar" id="syncbar"><button id="syncBtn" type="button" hidden>⟳ Sincronizza</button><button id="syncKey" type="button" hidden>Collega salvataggio</button><span class="st" id="syncMsg" role="status" hidden></span></div>
 </header>
 <div id="home">
 <div class="head"><h2>I tuoi schemi</h2><button id="newS" class="primary" type="button">＋ Nuovo schema</button></div>
@@ -233,6 +240,7 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 </div>
 </div>
 </div>
+<button id="fbBadge" type="button" aria-live="polite">☁ connessione…</button>
 <script>
 const ROLES={P:"Palleggiatore",OP:"Opposto",B:"Banda",C:"Centrale",L:"Libero"};const OLD={S:"B",O:"OP"};const CIRC=[1,6,5,4,3,2];
 const MARKS={sw:{s:"⇄",n:"Switch"},bt:{s:"★",n:"Battuta"},at:{s:"!",n:"Attenzione"},mu:{s:"▲",n:"Muro"}};let tool=null;let open=null;
@@ -335,7 +343,7 @@ const c=document.querySelector(".cls");if(c)c.hidden=window.volleyCanClassifica=
 function render(){
 perms();
 const ed=view==="edit"&&S.schemes.length>0;
-$("#home").hidden=ed;$("#editor").hidden=!ed;
+$("#home").hidden=ed;$("#editor").hidden=!ed;$("#top").hidden=ed;
 if(!ed){drawHome();save();return}
 S.cur=cur().id;
 const isDr=cur().status==="draft",cp=window.volleyCanPublish===true;
@@ -660,13 +668,17 @@ const RM={};
 const sm=t=>{$("#syncMsg").textContent=t};
 const ora=()=>new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 function fbStat(){
-if(FB.err)return sm(FB.err);
-if(!FB.ready)return sm(navigator.onLine===false?"Sei offline: le modifiche restano sul dispositivo.":"Connessione…");
-if(navigator.onLine===false)return sm("Sei offline: le modifiche restano sul dispositivo e partono da sole appena torna la linea."+(FB.user?"":" Per inviarle serve “Collega salvataggio”."));
-if(!FB.user)return sm("Sola lettura: per inviare le modifiche premi “Collega salvataggio”."+(FB.t?" Aggiornato alle "+FB.t+".":""));
-sm(FB.pend?"Invio modifiche…":"Sincronizzato ✓ "+FB.t);
+let sh,lg,st="ok";
+if(FB.err){sh=/regole/.test(FB.err)?"regole Firebase mancanti":"non raggiungibile";lg=FB.err;st="err"}
+else if(!FB.ready||navigator.onLine===false){sh=navigator.onLine===false?"offline: dati salvati sul dispositivo":"connessione…";lg=navigator.onLine===false?"Sei offline: le modifiche restano sul dispositivo e partono da sole appena torna la linea."+(FB.user?"":" Per inviarle serve “Collega salvataggio”."):"Connessione…";st=navigator.onLine===false?"off":"ok"}
+else if(!FB.user){sh="sola lettura";lg="Sola lettura: per inviare le modifiche premi “Collega salvataggio”."+(FB.t?" Aggiornato alle "+FB.t+".":"");st="off"}
+else{sh=FB.pend?"invio modifiche…":"sincronizzato";lg=FB.pend?"Invio modifiche…":"Sincronizzato ✓ "+FB.t}
+const bd=$("#fbBadge");bd.textContent="☁ "+sh;bd.title=lg;bd.dataset.s=st;sm(lg);
 }
-function updKey(){const b=$("#syncKey");b.textContent=FB.user?"☁ Salvataggio collegato":"Collega salvataggio";b.hidden=!(FB.user||(window.volleyRole&&window.volleyRole!=="viewer"))}
+function barVis(){const bar=$("#syncbar");bar.style.display=[...bar.children].some(e=>!e.hidden&&e.id!=="syncMsg"&&e.id!=="syncBtn")?"":"none"}
+function updKey(){const b=$("#syncKey");b.hidden=!!FB.user||!(window.volleyRole&&window.volleyRole!=="viewer");barVis()}
+new MutationObserver(barVis).observe($("#syncbar"),{childList:true});
+$("#fbBadge").addEventListener("click",()=>{const k=$("#syncKey");if(!FB.user&&!k.hidden)k.click();else $("#syncBtn").click()});
 const fbLoad=src=>new Promise((ok,ko)=>{const t=document.createElement("script");t.src=src;t.crossOrigin="anonymous";t.onload=ok;t.onerror=()=>ko(new Error("load"));document.head.appendChild(t)});
 function fbErr(e){
 const c=e&&e.code||"";
@@ -782,6 +794,14 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeo
 addEventListener("pagehide",()=>{clearTimeout(tm);tm=null;pushDirty()});
 document.addEventListener("volleyrole",updKey);
 updKey();initFb();
+/* Collegamento ad Amministrazione: se l'amministratore (token salvato) non vede il pulsante, lo aggiungo io */
+function admLink(){
+if(window.volleyLevel!=="admin")return;
+if([...document.querySelectorAll("a,button")].some(e=>/Amministrazione/i.test(e.textContent)))return;
+const a=document.createElement("a");a.href="admin.html";a.className="adm";a.textContent="⚙ Amministrazione";
+$("#syncbar").appendChild(a);barVis();
+}
+addEventListener("load",()=>setTimeout(admLink,800));
 /* Pulsante Classifica: sempre a metà tra "← Schemi" e "Lavagna" (il pulsante Lavagna lo aggiunge lavagna.js) */
 function placeCls(){
 const nav=$(".nav"),cls=nav&&nav.querySelector(".cls"),back=$("#back"),menu=nav&&nav.querySelector(".menu"),sps=nav?nav.querySelectorAll(".sp"):[];
