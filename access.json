@@ -4,7 +4,8 @@
  "message": "",
  "features": {
   "gestoreDrafts": true,
-  "gestorePublish": true
+  "gestorePublish": true,
+  "gestoreSchemi": false
  },
  "users": [
   {
