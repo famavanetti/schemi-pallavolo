@@ -1,6 +1,6 @@
 {
  "siteActive": true,
- "guestActive": true,
+ "guestActive": false,
  "message": "",
  "features": {
   "gestoreDrafts": true,
