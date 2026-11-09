@@ -126,8 +126,10 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;backgrou
 .acts .pri{grid-column:1/-1;background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
 .acts .pub{grid-column:1/-1;background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
 button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
-#draftNote{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:2px dashed var(--sel);border-radius:8px;padding:8px 10px;margin:0 0 10px;color:var(--ink);font-size:14px}
-#draftNote span{flex:1 1 200px}
+#draftNote{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;border:1px dashed var(--sel);border-radius:8px;padding:4px 10px;margin:0 0 8px;color:var(--ink);font-size:13px}
+#draftNote[hidden]{display:none}
+#draftNote span{flex:1 1 0;min-width:0}
+#draftNote button{padding:4px 10px;flex:none}
 #home .head{margin-bottom:12px}
 .nav{display:flex;align-items:center;gap:6px;margin-bottom:10px}
 .nav .sp{flex:1}
@@ -180,6 +182,7 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 .rtabs button{flex:1;padding:11px 8px;font-weight:600;border-bottom:3px solid var(--line)}
 .rtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .rpane[hidden]{display:none}
+.col>#info{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
 /* ===== Intestazione compatta + stato sincronizzazione ===== */
 .wrap{padding:10px 16px 46px}
 header h1{font-size:26px;line-height:1.1}
@@ -211,7 +214,7 @@ header .bar{margin:4px 0 8px}
 <div class="nav"><button id="back" type="button">← Schemi</button><span class="sp"></span><a class="cls" href="classifica.html">🏆 Classifica</a><span class="sp"></span>
 <div class="menu"><button id="more" type="button" aria-label="Altre azioni" aria-haspopup="true" aria-expanded="false">⋯</button>
 <div class="pop" id="pop" hidden><button id="unpub" type="button" hidden>↩ Rimetti in bozza</button><button id="dup" type="button">⧉ Duplica schema</button><button id="del" type="button" class="x">✕ Elimina schema</button></div></div></div>
-<div id="draftNote" hidden><span>🔒 <b>Bozza</b>: per ora la vedono solo admin e Sotto-admin.</span><button id="pubB" type="button" class="primary" hidden>Pubblica</button></div>
+<div id="draftNote" hidden><span>🔒 <b>Bozza</b> · la vedono solo admin e Sotto-admin</span><button id="pubB" type="button" class="primary" hidden>Pubblica</button></div>
 <div class="bar top">
 <input id="sname" aria-label="Nome dello schema" placeholder="Nome schema">
 <select id="skind" aria-label="Tipo di schema"></select>
@@ -220,6 +223,7 @@ header .bar{margin:4px 0 8px}
 <div class="stage"><div id="court"></div><div class="cmds">
 <div class="seg" role="group" aria-label="Rotazione"><button id="rotb" type="button" title="Ruota in senso antiorario">↺ Indietro</button><button id="rot" type="button" title="Ruota in senso orario">Avanti ↻</button></div>
 <div class="bar tools" id="tools"></div></div></div>
+<div id="info">
 <div id="sroles"></div>
 <div class="legend"><span><i class="dot f"></i>Donna</span><span><i class="dot m"></i>Uomo</span><span><i class="dot" style="background:transparent;border:2px solid #2f9e44"></i>Contorno verde = tesserato FIPAV</span><span>Sulla maglia: numero di maglia (se assegnato) o iniziale del ruolo · P palleggiatore · OP opposto · B banda · C centrale · L libero</span></div>
 <p class="hint" id="hint"></p>
@@ -233,6 +237,7 @@ header .bar{margin:4px 0 8px}
 <p class="hint">Preimpostato sul regolamento Libertas Rimini 2026-27 (mista): da 2 a 4 donne e da 2 a 4 uomini in campo, almeno 1 donna in prima linea (quindi al massimo 2 uomini davanti), libero solo in seconda linea. Per un altro campionato cambia i valori.</p>
 <button id="rLib" type="button">Ripristina regole Libertas Rimini</button>
 </details>
+</div>
 </section>
 <div class="col">
 <section class="card">
@@ -818,6 +823,10 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeo
 addEventListener("pagehide",()=>{clearTimeout(tm);tm=null;pushDirty()});
 document.addEventListener("volleyrole",updKey);
 updKey();initFb();
+/* Da 860px in su le informazioni (ruoli, legenda, controlli, regole) stanno a destra sotto rotazioni/giocatori; sotto restano sotto il campo */
+const wideMq=matchMedia("(min-width:860px)");
+function placeInfo(){const i=$("#info"),col=$(".col");if(wideMq.matches){if(i.parentNode!==col)col.insertBefore(i,$("#wa"))}else{const l=$(".grid>section.card");if(i.parentNode!==l)l.appendChild(i)}}
+wideMq.addEventListener("change",placeInfo);placeInfo();
 /* Pulsante Classifica: sempre a metà tra "← Schemi" e "Lavagna" (il pulsante Lavagna lo aggiunge lavagna.js) */
 function placeCls(){
 const nav=$(".nav"),cls=nav&&nav.querySelector(".cls"),back=$("#back"),menu=nav&&nav.querySelector(".menu"),sps=nav?nav.querySelectorAll(".sp"):[];
