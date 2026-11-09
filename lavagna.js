@@ -1,6 +1,6 @@
 /* Lavagna per Schemi pallavolo mista.
    Si carica DOPO lo script principale: <script src="lavagna.js"></script> prima di </body>.
-   Disegni e posizioni restano salvati in S.board finche' non premi "Pulisci". */
+   Disegni e posizioni sono salvati in S.board (si sincronizzano online insieme agli schemi) finche' non premi "Pulisci". */
 (function(){
 if(typeof S==="undefined"||typeof cur!=="function")return;
 
@@ -42,16 +42,20 @@ if(nav&&menu)nav.insertBefore(mkBtn(),menu);
 if(hd)hd.appendChild(mkBtn());
 
 var bt="pen",bc="#ffe066",bd=null,wl=null,bs=document.getElementById("bsvg");
-var board=null;
+/* La lavagna vive in S.board: cosi' si salva e si sincronizza come il resto dei dati. */
+var migd=false;
 function BB(){
-if(!board){
-try{board=JSON.parse(localStorage.getItem("volley-board")||"null")}catch(e){}
-if(!board||!Array.isArray(board.s))board=(S.board&&Array.isArray(S.board.s))?S.board:{s:[],p:{}};
-board.p=board.p||{};
+if(!migd){
+migd=true;
+var old=null;
+try{old=JSON.parse(localStorage.getItem("volley-board")||"null");localStorage.removeItem("volley-board")}catch(e){}
+if(old&&Array.isArray(old.s))S.board=old;
 }
-return board;
+if(!S.board||!Array.isArray(S.board.s))S.board={s:[],p:{}};
+S.board.p=S.board.p||{};
+return S.board;
 }
-function saveBoard(){try{localStorage.setItem("volley-board",JSON.stringify(board))}catch(e){}}
+function saveBoard(){try{save()}catch(e){}}
 function bpos(id){var z=zoneOf(id);return BB().p[id]||[20+COLX[z]*120+60,(FRONT.indexOf(z)>=0?40:210)+85]}
 function bpt(e){var p=bs.createSVGPoint();p.x=e.clientX;p.y=e.clientY;var q=p.matrixTransform(bs.getScreenCTM().inverse());return[Math.round(q.x),Math.round(q.y)]}
 function bui(){
@@ -92,7 +96,7 @@ bui();
 });
 document.getElementById("bundo").addEventListener("click",function(){BB().s.pop();saveBoard();drawBoard()});
 document.getElementById("bclr").addEventListener("click",function(){
-board={s:[],p:{}};saveBoard();drawBoard();
+S.board={s:[],p:{}};saveBoard();drawBoard();
 });
 bs.addEventListener("pointerdown",function(e){
 e.preventDefault();bs.setPointerCapture(e.pointerId);
@@ -125,7 +129,8 @@ i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s);
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!document.getElementById("board").hidden)closeBoard()});
 
-/* Pulsante Amministrazione: compare solo se il token e' collegato (cioe' solo per l'amministratore sul PC). */
+/* Pulsante Amministrazione: compare solo per l'amministratore (token GitHub collegato su questo browser). */
+var isAdm=function(){return window.volleyLevel==="admin"||(typeof tok==="function"&&!!tok())};
 var sb=document.getElementById("syncbar");
 if(sb){
 var st2=document.createElement("style");
@@ -136,7 +141,7 @@ ab.type="button";ab.id="admBtn";ab.hidden=true;ab.textContent="\u2699 Amministra
 ab.addEventListener("click",function(){location.href="admin.html"});
 var sk=document.getElementById("syncKey");
 sb.insertBefore(ab,sk?sk.nextSibling:null);
-var updAdm=function(){ab.hidden=!(typeof tok==="function"&&tok())};
+var updAdm=function(){ab.hidden=!isAdm()};
 updAdm();
 if(sk)sk.addEventListener("click",function(){setTimeout(updAdm,0)});
 window.addEventListener("focus",updAdm);
@@ -160,7 +165,7 @@ rs.textContent=
 ".cvl li{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}.cvl small{color:var(--muted);margin-left:6px}";
 document.head.appendChild(rs);
 var ro=false;
-function eff(){return(typeof tok==="function"&&tok())?"admin":(window.volleyRole||"admin")}
+function eff(){return isAdm()?"admin":(window.volleyRole||"admin")}
 var al=null;
 function fixHome(){
 document.querySelectorAll("#list .acts .pri").forEach(function(b){b.textContent=ro?"Apri":"Modifica"});
