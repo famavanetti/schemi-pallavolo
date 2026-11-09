@@ -175,6 +175,11 @@ button.primary{background:var(--sel);color:#fff;border-color:var(--sel);font-wei
 .bc.on{box-shadow:0 0 0 2px var(--sel)}
 .bc svg{width:36px;margin:0 auto;border-radius:0}
 .bc small{display:block;font-size:11px;line-height:1.2;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ===== Schede destra: Rotazioni / Giocatori ===== */
+.rtabs{display:flex;gap:6px;margin-bottom:10px}
+.rtabs button{flex:1;padding:11px 8px;font-weight:600;border-bottom:3px solid var(--line)}
+.rtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.rpane[hidden]{display:none}
 /* ===== Intestazione compatta + stato sincronizzazione ===== */
 .wrap{padding:10px 16px 46px}
 header h1{font-size:26px;line-height:1.1}
@@ -231,16 +236,18 @@ header .bar{margin:4px 0 8px}
 </section>
 <div class="col">
 <section class="card">
+<div class="rtabs" role="tablist"><button id="tabRot" type="button" role="tab" class="on" aria-selected="true">Rotazioni</button><button id="tabPl" type="button" role="tab" aria-selected="false">Giocatori <span class="st" id="tabCnt"></span></button></div>
+<div class="rpane" id="paneRot">
+<p class="hint" style="margin:2px 0 12px">Ogni riquadro mostra la formazione dopo un certo numero di rotazioni e se rispetta le regole. Tocca un riquadro per portarlo in campo.</p>
+<div id="rots" class="rg"></div>
+</div>
+<div class="rpane" id="panePl" hidden>
 <div class="head"><h2>Giocatori</h2><span class="st" id="pcount"></span><button id="add">Aggiungi giocatore</button></div>
 <div class="bar"><button id="allOn" type="button">Convoca tutti</button><button id="allOff" type="button">Nessuno</button><label class="ck"><input type="checkbox" id="onlyOn"> Solo convocati</label></div>
 <div id="roster"></div>
+</div>
 </section>
 <section class="card" id="wa" hidden></section>
-<section class="card">
-<h2>Le 6 rotazioni</h2>
-<p class="hint" style="margin:2px 0 12px">Ogni riquadro mostra la formazione dopo un certo numero di rotazioni e se rispetta le regole. Tocca un riquadro per portarlo in campo.</p>
-<div id="rots" class="rg"></div>
-</section>
 </div>
 </div>
 </div>
@@ -357,13 +364,13 @@ $("#sname").value=cur().name;
 $("#skind").innerHTML=Object.keys(KINDS).map(k=>`<option value="${k}"${(cur().kind||"ric")===k?" selected":""}>${KINDS[k]}</option>`).join("");
 $("#rF").value=S.rules.minF;$("#rM").value=S.rules.minM;$("#rX").value=S.rules.maxMF;$("#rO").checked=S.rules.ord!==false;
 $("#tools").innerHTML=Object.keys(MARKS).map(k=>`<button class="tool ${tool===k?"on":""}" data-m="${k}" aria-pressed="${tool===k}">${MARKS[k].s} ${MARKS[k].n}</button>`).join("")+`<button data-m="clear" class="x" title="Togli tutti i simboli">✕ Pulisci</button>`;
-drawCourt();drawBench();drawSRoles();drawChecks();drawRoster();drawRots();drawWA();
+drawTabs();drawCourt();drawBench();drawSRoles();drawChecks();drawRoster();drawRots();drawWA();
 $("#hint").textContent=sel?(sel.t==="p"?`${esc(pl(sel.id).name)} è scelto: tocca una zona del campo.`:`Zona ${sel.z} scelta: tocca un’altra zona per scambiare.`):(tool?"Simbolo “"+MARKS[tool].n+"” attivo: tocca un giocatore in campo per metterlo o toglierlo. Tocca di nuovo il pulsante per smettere.":"Trascina i giocatori dall’elenco sul campo, oppure da una zona all’altra per spostarli o scambiarli.");
 save();
 }
 function drawBench(){
 const bs=S.players.filter(p=>p.pres!==false&&!zoneOf(p.id)),c=cur();
-$("#bench").innerHTML=bs.length?`<div class="bl">Panchina · tocca un giocatore, poi una zona del campo</div><div class="bs">${bs.map(p=>`<button type="button" class="bc${sel&&sel.t==="p"&&sel.id===p.id?" on":""}" data-bid="${p.id}" style="border-bottom-color:var(--${p.sex==="F"?"f":"m"})" aria-label="Scegli ${esc(p.name)}"><svg viewBox="-40 -36 80 72" aria-hidden="true"><path d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="var(--${p.sex==="F"?"f":"m"})" stroke="${p.fipav?"#2f9e44":"#fff"}" stroke-width="3" stroke-linejoin="round"/><text x="0" y="9" text-anchor="middle" font-size="26" font-weight="700" fill="#fff" font-family="Barlow Condensed,sans-serif">${tag(p,c)}</text></svg><small>${esc(p.name.slice(0,9))}</small></button>`).join("")}</div>`:"";
+$("#bench").innerHTML=S.players.length?`<div class="bl">Panchina · tocca un giocatore, poi una zona del campo</div><div class="bs">${bs.map(p=>`<button type="button" class="bc${sel&&sel.t==="p"&&sel.id===p.id?" on":""}" data-bid="${p.id}" style="border-bottom-color:var(--${p.sex==="F"?"f":"m"})" aria-label="Scegli ${esc(p.name)}"><svg viewBox="-40 -36 80 72" aria-hidden="true"><path d="M-11,-30 Q0,-21 11,-30 L32,-19 L26,-3 L17,-7 L17,30 L-17,30 L-17,-7 L-26,-3 L-32,-19 Z" fill="var(--${p.sex==="F"?"f":"m"})" stroke="${p.fipav?"#2f9e44":"#fff"}" stroke-width="3" stroke-linejoin="round"/><text x="0" y="9" text-anchor="middle" font-size="26" font-weight="700" fill="#fff" font-family="Barlow Condensed,sans-serif">${tag(p,c)}</text></svg><small>${esc(p.name.slice(0,9))}</small></button>`).join("")}<button type="button" class="bc" data-plus="1" aria-label="Convoca altri giocatori" style="font-size:22px;border-bottom-color:var(--sel)">＋</button></div>`:"";
 }
 const badges=(c,id,cx,cy)=>((c.marks||{})[id]||[]).map((k,i)=>`<circle cx="${cx+42}" cy="${cy-22+i*26}" r="12" fill="#ffd43b" stroke="#fff" stroke-width="2"/><text x="${cx+42}" y="${cy-17+i*26}" text-anchor="middle" font-size="14" font-weight="700" fill="#222">${MARKS[k].s}</text>`).join("");
 function toggleMark(id,k){const c=cur();c.marks=c.marks||{};const a=c.marks[id]||[];c.marks[id]=a.includes(k)?a.filter(x=>x!==k):[...a,k]}
@@ -447,6 +454,7 @@ const ab=on.filter(p=>p.pres===false);
 if(ab.length)w.push(`In campo ci sono giocatori non convocati: ${ab.map(p=>p.name).join(", ")}.`);
 const pr=S.players.filter(p=>p.pres!==false),nL=pr.filter(p=>p.role==="L").length,mx=pr.length<=8?0:pr.length<=11?1:2;
 $("#pcount").textContent=`Convocati ${pr.length} su ${S.players.length}`;
+$("#tabCnt").textContent=`${pr.length}/${S.players.length}`;
 if(pr.length>14)w.push(`Troppi convocati in distinta: ${pr.length} (massimo 14).`);
 if(nL>mx)w.push(`Con ${pr.length} convocati i liberi ammessi sono ${mx} (ora ${nL}).`);
 const nums=pr.map(p=>String(p.num||"").trim()).filter(Boolean),dn=[...new Set(nums.filter((n,i)=>nums.indexOf(n)!==i))];
@@ -512,10 +520,19 @@ if(!best){alert("Con i ruoli inseriti nell’anagrafica non esiste nessuna combi
 c.roles={};ps.forEach(p=>{if(best[p.id]!==p.role)c.roles[p.id]=best[p.id]});
 sel=null;render();
 }
-let onlyOn=false;
+let onlyOn=false,onlyOff=false;
+let rtab=(()=>{try{return localStorage.getItem("volley-tab")==="pl"?"pl":"rot"}catch(e){return"rot"}})();
+function drawTabs(){
+$("#paneRot").hidden=rtab!=="rot";$("#panePl").hidden=rtab!=="pl";
+$("#tabRot").classList.toggle("on",rtab==="rot");$("#tabPl").classList.toggle("on",rtab==="pl");
+$("#tabRot").setAttribute("aria-selected",rtab==="rot");$("#tabPl").setAttribute("aria-selected",rtab==="pl");
+}
+function setTab(t){rtab=t;try{localStorage.setItem("volley-tab",t)}catch(e){}render()}
+$("#tabRot").addEventListener("click",()=>{onlyOff=false;setTab("rot")});
+$("#tabPl").addEventListener("click",()=>{onlyOff=false;setTab("pl")});
 function drawRoster(){
 const pm=window.volleyPlayers;
-$("#roster").innerHTML=[...S.players].filter(p=>!onlyOn||p.pres!==false).sort((a,b)=>{const k=p=>{const z=zoneOf(p.id);return z?z:(p.pres===false?9:7)};return k(a)-k(b)}).map(p=>{
+$("#roster").innerHTML=[...S.players].filter(p=>(!onlyOn||p.pres!==false)&&(!onlyOff||p.pres===false)).sort((a,b)=>{const k=p=>{const z=zoneOf(p.id);return z?z:(p.pres===false?9:7)};return k(a)-k(b)}).map(p=>{
 const z=zoneOf(p.id),on=sel&&sel.t==="p"&&sel.id===p.id;
 const rs=[["role","1° ruolo",0],["ro2","2° ruolo",1],["ro3","3° ruolo",1]].map(([k,l,b])=>`<label class="rt">${l}<select data-k="${k}" aria-label="${l}" style="width:100%">${b?`<option value="">—</option>`:""}${Object.keys(ROLES).map(r=>`<option value="${r}"${p[k]===r?" selected":""}>${ROLES[r]}</option>`).join("")}</select></label>`).join("");
 const rt=["Att","Ric","Dif","Bat"].map((l,i)=>`<label class="rt">${l}<input type="number" min="1" max="5" data-r="${i}" value="${p.r[i]}"></label>`).join("");
@@ -526,7 +543,7 @@ return`<div class="pl ${on?"sel":""} ${open===p.id?"open":""} ${p.pres===false?"
 </div><div class="row">${rs}</div><div class="row">${rt}</div>
 <div class="row"><label class="rt">N° maglia<input type="number" min="0" max="99" data-k="num" value="${esc(p.num||"")}" aria-label="Numero di maglia"></label><label class="rt" style="flex:1 1 140px">N° matricola tesserato<input type="text" inputmode="numeric" data-k="mat" style="width:100%" value="${esc(p.mat||"")}" aria-label="Numero di matricola del tesserato"></label></div>
 <div class="row"><label class="ck"><input type="checkbox" data-k="fipav"${p.fipav?" checked":""}> Tesserato FIPAV serie D / 1ª div</label></div>
-<div class="row"><button class="pick" data-pick="1">${z?`In campo, zona ${z}`:"In panchina"} · ${on?"scelto, tocca una zona":"tocca per scegliere"}</button><span class="avg">Media ${avg(p)}</span></div></div>`}).join("")||`<p class="hint">${onlyOn?"Nessun giocatore convocato.":"Nessun giocatore: aggiungi il primo."}</p>`;
+<div class="row"><button class="pick" data-pick="1">${z?`In campo, zona ${z}`:"In panchina"} · ${on?"scelto, tocca una zona":"tocca per scegliere"}</button><span class="avg">Media ${avg(p)}</span></div></div>`}).join("")||`<p class="hint">${onlyOff?"Tutti i giocatori sono già convocati.":onlyOn?"Nessun giocatore convocato.":"Nessun giocatore: aggiungi il primo."}</p>`;
 if(pm==="view"||pm==="conv")$("#roster").querySelectorAll("input,select").forEach(e=>{if(!(pm==="conv"&&e.dataset.k==="pres"))e.disabled=true});
 }
 function zoneClick(z){
@@ -582,7 +599,7 @@ $("#back").addEventListener("click",()=>go(""));
 $("#pubB").addEventListener("click",()=>setStatus(S.cur,"published"));
 $("#unpub").addEventListener("click",()=>setStatus(S.cur,"draft"));
 $("#tools").addEventListener("click",e=>{const b=e.target.closest("[data-m]");if(!b)return;const k=b.dataset.m;if(k==="clear")cur().marks={};else tool=tool===k?null:k;sel=null;render()});
-$("#bench").addEventListener("click",e=>{const b=e.target.closest("[data-bid]");if(!b)return;const id=b.dataset.bid;tool=null;sel=sel&&sel.t==="p"&&sel.id===id?null:{t:"p",id};render()});
+$("#bench").addEventListener("click",e=>{if(e.target.closest("[data-plus]")){onlyOff=true;setTab("pl");return}const b=e.target.closest("[data-bid]");if(!b)return;const id=b.dataset.bid;tool=null;sel=sel&&sel.t==="p"&&sel.id===id?null:{t:"p",id};render()});
 $("#rots").addEventListener("click",e=>{
 const d=e.target.closest("[data-k]");if(!d)return;
 const k=+d.dataset.k;if(!k)return;
