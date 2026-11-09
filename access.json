@@ -5,7 +5,7 @@
  "features": {
   "gestoreDrafts": true,
   "gestorePublish": true,
-  "gestoreSchemi": false
+  "gestoreSchemi": true
  },
  "users": [
   {
